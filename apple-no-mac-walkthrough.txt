@@ -5,15 +5,9 @@ You never touch a Mac. TestFlight internal testing = NO Apple review.
 
 You need the project zip (armor-of-god-ios-v3.zip — ask me for the link).
 
-PART A — GITHUB, free file host for the code (~10 min, once)
- 1. Create a free account at github.com/signup.
- 2. Click the + icon (top right) → New repository.
-    Name: armor-of-god-ios  →  Select "Public"  →  Create repository.
- 3. On the next page click "uploading an existing file".
-    Open the unzipped project folder on your computer and drag EVERYTHING
-    inside AOG-iOS into the browser window (it accepts folders).
-    Click "Commit changes". The code is now on GitHub.
-
+PART A — GITHUB  ** ALREADY DONE FOR YOU — SKIP THIS PART **
+  Your repo is ready: https://github.com/jcebertowski0-pixel/armor-of-god-ios
+  (The complete project, including codemagic.yaml, is already pushed there.)
 PART B — APP STORE CONNECT, your paid Apple account (~10 min, once)
  1. Go to appstoreconnect.apple.com → sign in with the Apple ID tied to
     your developer membership (Free Bird Applications).
