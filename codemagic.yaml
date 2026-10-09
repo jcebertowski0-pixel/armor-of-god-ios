@@ -1,0 +1,37 @@
+# Codemagic CI config — builds the Armor of God iOS app in the cloud (no Mac needed)
+# and publishes it to TestFlight, where it installs on your iPhone with NO review.
+#
+# One-time setup (see apple-no-mac-walkthrough.txt for exact clicks):
+#   1. GitHub: free account + repo with this project in it
+#   2. App Store Connect: create the app record + an App Store Connect API key (.p8)
+#   3. Codemagic: sign up with GitHub, add the App Store Connect key, Start build
+#
+# Free plan: 500 build minutes/month. One build uses about 15.
+workflows:
+  armor-of-god-ios:
+    name: Armor of God iOS
+    max_build_duration: 20
+    environment:
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.freebirdapps.armorofgod
+    scripts:
+      - name: Build the app
+        script: |
+          xcodebuild -project ArmorOfGod.xcodeproj \
+                     -scheme ArmorOfGod \
+                     -configuration Release \
+                     -destination 'generic/platform=iOS' \
+                     -archivePath build/ArmorOfGod.xcarchive \
+                     clean archive
+    artifacts:
+      - build/ArmorOfGod.xcarchive
+    publishing:
+      # These variables are created automatically when you add the
+      # App Store Connect API key (.p8) in Codemagic's team settings.
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true

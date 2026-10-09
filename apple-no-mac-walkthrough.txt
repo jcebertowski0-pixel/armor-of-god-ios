@@ -1,0 +1,51 @@
+ARMOR OF GOD ON YOUR iPHONE — NO MAC NEEDED (total ~30 min, all free)
+======================================================================
+The cloud service Codemagic compiles the app on Apple's own toolchain.
+You never touch a Mac. TestFlight internal testing = NO Apple review.
+
+You need the project zip (armor-of-god-ios-v3.zip — ask me for the link).
+
+PART A — GITHUB, free file host for the code (~10 min, once)
+ 1. Create a free account at github.com/signup.
+ 2. Click the + icon (top right) → New repository.
+    Name: armor-of-god-ios  →  Select "Public"  →  Create repository.
+ 3. On the next page click "uploading an existing file".
+    Open the unzipped project folder on your computer and drag EVERYTHING
+    inside AOG-iOS into the browser window (it accepts folders).
+    Click "Commit changes". The code is now on GitHub.
+
+PART B — APP STORE CONNECT, your paid Apple account (~10 min, once)
+ 1. Go to appstoreconnect.apple.com → sign in with the Apple ID tied to
+    your developer membership (Free Bird Applications).
+ 2. Users and Access → Integrations (or "App Store Connect API") →
+    Generate API key. Name: codemagic. Access: Admin.
+    → DOWNLOAD the .p8 file. Write down the "Key ID" and "Issuer ID"
+    shown next to it. (The .p8 downloads only once!)
+ 3. My Apps → + (blue plus) → New App:
+      Name: Armor of God
+      Language: English
+      Bundle ID: com.freebirdapps.armorofgod  (register it if asked)
+      SKU: aog-001
+ 4. In the new app → TestFlight tab → Internal Testing →
+    add yourself as an internal tester and turn it on.
+
+PART C — CODEMAGIC, the cloud Mac (~10 min, once + 15 min build)
+ 1. Go to codemagic.io → "Get started" → sign up WITH GITHUB
+    (it sees your repo automatically).
+ 2. "Add application" → pick armor-of-god-ios →
+    "Workflow editor or codemagic.yaml" → select the repository.
+    It reads the codemagic.yaml already in the project — nothing to configure.
+ 3. Team settings (click your avatar) → Integrations → App Store Connect →
+    upload the .p8 file + enter the Key ID and Issuer ID.
+ 4. Back on the app → "Start build". Watch it run ~15 minutes.
+    Green check = done. The build now shows up in App Store Connect →
+    your app → TestFlight.
+
+PART D — YOUR iPHONE (2 min)
+ 1. On the iPhone: App Store → install the "TestFlight" app (Apple's own).
+ 2. Open TestFlight → "Armor of God" → Install.
+    That is your test app. Updates: rebuild in Codemagic, they appear automatically.
+
+IF THE BUILD FAILS: open the failed build in Codemagic, click the failed step,
+copy the error text and send it to me — the code is mine, I'll fix it.
+======================================================================

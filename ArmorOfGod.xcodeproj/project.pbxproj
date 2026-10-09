@@ -1,0 +1,248 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A0A000000000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000001 /* AppDelegate.swift */; };
+		A0A000000000000000000002 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000002 /* WebViewController.swift */; };
+		A0A000000000000000000003 /* AlarmSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000003 /* AlarmSettingsViewController.swift */; };
+		A0A000000000000000000004 /* AlarmSyncClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000004 /* AlarmSyncClient.swift */; };
+		A0A000000000000000000005 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000005 /* NotificationScheduler.swift */; };
+		A0A000000000000000000006 /* AlarmSound.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000006 /* AlarmSound.wav */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A0B000000000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>";; };
+		A0B000000000000000000002 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>";; };
+		A0B000000000000000000003 /* AlarmSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmSettingsViewController.swift; sourceTree = "<group>";; };
+		A0B000000000000000000004 /* AlarmSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmSyncClient.swift; sourceTree = "<group>";; };
+		A0B000000000000000000005 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>";; };
+		A0B000000000000000000006 /* AlarmSound.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmSound.wav; sourceTree = "<group>";; };
+		A0B000000000000000000010 /* ArmorOfGod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ArmorOfGod.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		A0C000000000000000000000 = {
+			isa = PBXGroup;
+			children = (
+				A0C000000000000000000001 /* ArmorOfGod */,
+				A0C000000000000000000002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A0C000000000000000000001 /* ArmorOfGod */ = {
+			isa = PBXGroup;
+			children = (
+				A0B000000000000000000001 /* AppDelegate.swift */,
+				A0B000000000000000000002 /* WebViewController.swift */,
+				A0B000000000000000000003 /* AlarmSettingsViewController.swift */,
+				A0B000000000000000000004 /* AlarmSyncClient.swift */,
+				A0B000000000000000000005 /* NotificationScheduler.swift */,
+				A0B000000000000000000006 /* AlarmSound.wav */,
+			);
+			path = ArmorOfGod;
+			sourceTree = "<group>";
+		};
+		A0C000000000000000000002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A0B000000000000000000010 /* ArmorOfGod.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A0D000000000000000000001 /* ArmorOfGod */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0F000000000000000000002 /* Build configuration list for PBXNativeTarget "ArmorOfGod" */;
+			buildPhases = (
+				A0E000000000000000000001 /* Sources */,
+				A0E000000000000000000002 /* Frameworks */,
+				A0E000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ArmorOfGod;
+			productName = ArmorOfGod;
+			productReference = A0B000000000000000000010 /* ArmorOfGod.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A090000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A0D000000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A0F000000000000000000001 /* Build configuration list for PBXProject "ArmorOfGod" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A0C000000000000000000000;
+			productRefGroup = A0C000000000000000000002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A0D000000000000000000001 /* ArmorOfGod */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A0E000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0A000000000000000000006 /* AlarmSound.wav in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A0E000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0A000000000000000000001 /* AppDelegate.swift in Sources */,
+				A0A000000000000000000002 /* WebViewController.swift in Sources */,
+				A0A000000000000000000003 /* AlarmSettingsViewController.swift in Sources */,
+				A0A000000000000000000004 /* AlarmSyncClient.swift in Sources */,
+				A0A000000000000000000005 /* NotificationScheduler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A0E000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A080000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1 $(inherited)";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A080000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A080000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Armor of God";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freebirdapps.armorofgod;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A080000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Armor of God";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freebirdapps.armorofgod;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A0F000000000000000000001 /* Build configuration list for PBXProject "ArmorOfGod" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A080000000000000000000001 /* Debug */,
+				A080000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A0F000000000000000000002 /* Build configuration list for PBXNativeTarget "ArmorOfGod" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A080000000000000000000003 /* Debug */,
+				A080000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A090000000000000000000001 /* Project object */;
+}
