@@ -15,7 +15,7 @@ workflows:
         script: |
           keychain initialize
           app-store-connect fetch-signing-files com.freebirdapps.armorofgod \
-            --type APP_STORE --create
+            --type IOS_APP_STORE --create
           xcode-project use-profiles
       - name: Build the app
         script: |
