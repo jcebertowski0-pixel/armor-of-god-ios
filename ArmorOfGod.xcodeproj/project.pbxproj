@@ -16,12 +16,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A0B000000000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>";; };
-		A0B000000000000000000002 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>";; };
-		A0B000000000000000000003 /* AlarmSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmSettingsViewController.swift; sourceTree = "<group>";; };
-		A0B000000000000000000004 /* AlarmSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmSyncClient.swift; sourceTree = "<group>";; };
-		A0B000000000000000000005 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>";; };
-		A0B000000000000000000006 /* AlarmSound.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmSound.wav; sourceTree = "<group>";; };
+		A0B000000000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A0B000000000000000000002 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
+		A0B000000000000000000003 /* AlarmSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmSettingsViewController.swift; sourceTree = "<group>"; };
+		A0B000000000000000000004 /* AlarmSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmSyncClient.swift; sourceTree = "<group>"; };
+		A0B000000000000000000005 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
+		A0B000000000000000000006 /* AlarmSound.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmSound.wav; sourceTree = "<group>"; };
 		A0B000000000000000000010 /* ArmorOfGod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ArmorOfGod.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
