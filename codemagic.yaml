@@ -29,10 +29,10 @@ workflows:
           xcodebuild -list -project ArmorOfGod.xcodeproj 2>&1 || true
           echo "=== DIAGNOSTICS: raw showBuildSettings (with destination) ==="
           xcodebuild -project ArmorOfGod.xcodeproj -scheme ArmorOfGod \
-            -destination 'generic/platform=iOS' -showBuildSettings 2>&1 | tail -100 || true
+            -destination 'generic/platform=iOS' -showBuildSettings 2>&1 | head -40 || true
           echo "=== DIAGNOSTICS: raw showBuildSettings (no destination, like the tool) ==="
           xcodebuild -project ArmorOfGod.xcodeproj -scheme ArmorOfGod \
-            -showBuildSettings 2>&1 | tail -60 || true
+            -showBuildSettings 2>&1 | head -40 || true
           echo "=== Starting build-ipa ==="
           xcode-project build-ipa --project ArmorOfGod.xcodeproj --scheme ArmorOfGod
     artifacts:
