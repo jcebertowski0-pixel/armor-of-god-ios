@@ -25,6 +25,15 @@ workflows:
           xcode-project use-profiles --code-signing-setup-verbose-logging
       - name: Build the app
         script: |
+          echo "=== DIAGNOSTICS: targets and schemes Xcode sees ==="
+          xcodebuild -list -project ArmorOfGod.xcodeproj 2>&1 || true
+          echo "=== DIAGNOSTICS: raw showBuildSettings (with destination) ==="
+          xcodebuild -project ArmorOfGod.xcodeproj -scheme ArmorOfGod \
+            -destination 'generic/platform=iOS' -showBuildSettings 2>&1 | tail -100 || true
+          echo "=== DIAGNOSTICS: raw showBuildSettings (no destination, like the tool) ==="
+          xcodebuild -project ArmorOfGod.xcodeproj -scheme ArmorOfGod \
+            -showBuildSettings 2>&1 | tail -60 || true
+          echo "=== Starting build-ipa ==="
           xcode-project build-ipa --project ArmorOfGod.xcodeproj --scheme ArmorOfGod
     artifacts:
       - build/ipa/*.ipa
