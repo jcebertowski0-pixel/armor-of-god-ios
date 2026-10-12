@@ -1,21 +1,27 @@
-# Codemagic CI config — builds the Armor of God iOS app in the cloud (no Mac needed)
+# Codemagic CI config - builds the Armor of God iOS app in the cloud (no Mac needed)
 # and publishes it to TestFlight, where it installs on your iPhone with NO review.
 #
-# Signing is fully automatic now: Codemagic fetches the App Store Connect profile
-# and certificate at build time using the App Store Connect API key integration.
-# Nothing needs to be uploaded manually in the Codemagic UI.
+# Signing: the App Store Connect API key named "Codemagic" (uploaded once in
+# Codemagic settings > Integrations > Developer Portal) authenticates with Apple,
+# and the distribution certificate private key comes from the encrypted
+# "code-signing" variable group. The App Store profile is created on the fly.
 workflows:
   armor-of-god-ios:
     name: Armor of God iOS
     max_build_duration: 20
+    integrations:
+      app_store_connect: Codemagic
     environment:
       xcode: latest
+      groups:
+        - code-signing
     scripts:
       - name: Fetch code signing files from App Store Connect
         script: |
           keychain initialize
           app-store-connect fetch-signing-files com.freebirdapps.armorofgod \
             --type IOS_APP_STORE --create
+          keychain add-certificates
           xcode-project use-profiles
       - name: Build the app
         script: |
@@ -24,7 +30,5 @@ workflows:
       - build/ipa/*.ipa
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        auth: integration
         submit_to_testflight: true
