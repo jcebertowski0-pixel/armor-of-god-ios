@@ -8,7 +8,7 @@ struct PlannedEvent: Codable {
     let event_start: String
     let repeat_daily: Bool
 
-    private var startDate: Date? {
+    var startDate: Date? {
         let frac = ISO8601DateFormatter()
         frac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let d = frac.date(from: event_start) { return d }
