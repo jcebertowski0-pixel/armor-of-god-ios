@@ -20,7 +20,7 @@ final class NotificationScheduler {
         center.getNotificationSettings { settings in
             switch settings.authorizationStatus {
             case .notDetermined:
-                center.requestAuthorization(options: [.alert, .sound, .badge, .timeSensitive]) { ok, _ in
+                self.center.requestAuthorization(options: [.alert, .sound, .badge, .timeSensitive]) { ok, _ in
                     DispatchQueue.main.async { completion(ok) }
                 }
             case .denied:
