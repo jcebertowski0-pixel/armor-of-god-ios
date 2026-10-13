@@ -36,7 +36,7 @@ workflows:
           echo "=== Starting build-ipa ==="
           xcode-project build-ipa --project ArmorOfGod.xcodeproj --scheme ArmorOfGod
     artifacts:
-      - build/ipa/*.ipa
+      - build/ios/ipa/*.ipa
     publishing:
       app_store_connect:
         auth: integration
