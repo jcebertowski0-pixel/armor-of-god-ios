@@ -12,6 +12,12 @@ final class AlarmSettingsViewController: UIViewController {
     private let syncButton = UIButton(type: .system)
     private let testButton = UIButton(type: .system)
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // The web screen hides the nav bar; show it here so there's a back button.
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Phone Alarms"
