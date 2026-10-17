@@ -20,6 +20,8 @@ struct ManualAlarm: Codable, Equatable {
     let hour: Int
     let minute: Int
     let daily: Bool
+    /// For one-time alarms set on a specific day: the exact fire date/time.
+    let dateISO: String?
 }
 
 /**
@@ -45,6 +47,10 @@ final class NotificationScheduler {
 
     static let ringtones = ["radar", "siren", "buzzer", "bell"]
     static let styles = ["clock", "dark", "red"]
+    /// Attachable lead times for calendar events, in minutes before the event.
+    static let leadOptions: [(minutes: Int, label: String)] = [
+        (15, "15 min"), (30, "30 min"), (60, "1 hr"), (120, "2 hrs"), (180, "3 hrs"), (1440, "1 day")
+    ]
 
     // MARK: Authorization
 
@@ -90,11 +96,20 @@ final class NotificationScheduler {
                     fires.append(ExpectedFire(id: manual.id, title: title, notes: "",
                                               kind: "manual", fireISO: iso.string(from: fireDate)))
                 }
-            } else if let fireDate = nextOccurrence(hour: manual.hour, minute: manual.minute, after: now) {
-                addNotification(id: manual.id, title: title, notes: "", kind: "manual",
-                                bodyText: "Time to acknowledge this", date: fireDate, suffix: "")
-                fires.append(ExpectedFire(id: manual.id, title: title, notes: "",
-                                          kind: "manual", fireISO: iso.string(from: fireDate)))
+            } else {
+                // One-time: exact date+time if given, else next matching time.
+                var fireDate: Date?
+                if let isoDate = manual.dateISO, let d = ISO8601DateFormatter().date(from: isoDate) {
+                    fireDate = d > now ? d : nil
+                } else {
+                    fireDate = nextOccurrence(hour: manual.hour, minute: manual.minute, after: now)
+                }
+                if let fd = fireDate {
+                    addNotification(id: manual.id, title: title, notes: "", kind: "manual",
+                                    bodyText: "Time to acknowledge this", date: fd, suffix: "")
+                    fires.append(ExpectedFire(id: manual.id, title: title, notes: "",
+                                              kind: "manual", fireISO: iso.string(from: fd)))
+                }
             }
             alarmsScheduled += 1
         }
@@ -102,19 +117,51 @@ final class NotificationScheduler {
         let sorted = events.sorted { ($0.startDate ?? .distantPast) < ($1.startDate ?? .distantPast) }
         for event in sorted {
             guard let start = event.nextOccurrence(after: now) else { continue }
-            for (kind, offset, text) in [("day_before", -86400.0, "Your event is TOMORROW"),
-                                         ("one_hour", -3600.0, "Your event starts in ONE HOUR")] {
+            // The lead times the owner attached to THIS event.
+            for m in eventOffsets(id: event.id).sorted() {
                 if alarmsScheduled >= 20 { break }
-                let fireDate = start.addingTimeInterval(offset)
+                let fireDate = start.addingTimeInterval(-Double(m) * 60)
                 if fireDate <= now { continue }
-                addNotification(id: event.id, title: event.title, notes: event.notes, kind: kind,
-                                bodyText: text, date: fireDate, suffix: "")
+                addNotification(id: event.id, title: event.title, notes: event.notes,
+                                kind: "lead_\(m)", bodyText: leadBody(m), date: fireDate, suffix: "")
                 fires.append(ExpectedFire(id: event.id, title: event.title, notes: event.notes,
-                                          kind: kind, fireISO: iso.string(from: fireDate)))
+                                          kind: "lead_\(m)", fireISO: iso.string(from: fireDate)))
                 alarmsScheduled += 1
             }
         }
         saveFires(fires)
+    }
+
+    /// Notification body text for a lead time.
+    private func leadBody(_ minutes: Int) -> String {
+        if minutes >= 1440 {
+            return minutes / 1440 == 1 ? "Your event is TOMORROW" : "Your event is in \(minutes / 1440) days"
+        }
+        if minutes >= 60 {
+            return minutes == 60 ? "Your event starts in ONE HOUR"
+                                  : "Your event starts in \(minutes / 60) HOURS"
+        }
+        return "Your event starts in \(minutes) MINUTES"
+    }
+
+    /// The alarm lead times (minutes before the event) attached to one calendar
+    /// event. Default keeps the classic pair: 1 hour + 1 day before.
+    func eventOffsets(id: String) -> Set<Int> {
+        if let arr = UserDefaults.standard.array(forKey: "aog_offsets_\(id)") as? [Int] {
+            return Set(arr)
+        }
+        return [60, 1440]
+    }
+
+    func setEventOffsets(id: String, offsets: Set<Int>) {
+        UserDefaults.standard.set(Array(offsets.sorted()), forKey: "aog_offsets_\(id)")
+        syncAndSchedule()
+    }
+
+    /// Clear custom offsets back to the default pair.
+    func resetEventOffsets(id: String) {
+        UserDefaults.standard.removeObject(forKey: "aog_offsets_\(id)")
+        syncAndSchedule()
     }
 
     /// A daily alarm: one repeating notification, fires at hour:minute forever.
@@ -184,10 +231,10 @@ final class NotificationScheduler {
     }
 
     @discardableResult
-    func addManual(title: String, hour: Int, minute: Int, daily: Bool) -> ManualAlarm {
+    func addManual(title: String, hour: Int, minute: Int, daily: Bool, dateISO: String? = nil) -> ManualAlarm {
         let alarm = ManualAlarm(id: UUID().uuidString,
                                 title: title.isEmpty ? "Alarm" : title,
-                                hour: hour, minute: minute, daily: daily)
+                                hour: hour, minute: minute, daily: daily, dateISO: daily ? nil : dateISO)
         var all = loadManual()
         all.append(alarm)
         saveManual(all)
@@ -275,7 +322,8 @@ final class NotificationScheduler {
             }
         }
         // Web-app alarms report to the dashboard; manual/test alarms stay local.
-        if alarm.kind == "day_before" || alarm.kind == "one_hour" || alarm.kind == "snooze" {
+        if alarm.kind.hasPrefix("lead_") || alarm.kind == "day_before" || alarm.kind == "one_hour"
+            || alarm.kind == "snooze" {
             AlarmSyncClient.shared.reportAck(eventId: alarm.id, title: alarm.title, kind: alarm.kind)
         }
     }

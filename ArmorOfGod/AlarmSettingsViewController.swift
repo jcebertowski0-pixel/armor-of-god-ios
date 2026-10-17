@@ -34,6 +34,19 @@ final class AlarmSettingsViewController: UIViewController {
 
     private var previewPlayer: AVAudioPlayer?
     private var previewStopTimer: Timer?
+    private var calendarEvents: [PlannedEvent] = []
+    private var expandedEventId: String?
+    private let eventsStack = UIStackView()
+
+    /// Chip carrying its event + lead time.
+    private class ChipButton: UIButton {
+        var eventId = ""
+        var minutes = 0
+    }
+    /// Calendar event row button.
+    private class EventRowButton: UIButton {
+        var eventId = ""
+    }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -55,6 +68,7 @@ final class AlarmSettingsViewController: UIViewController {
         }
         NotificationScheduler.shared.syncAndSchedule()
         refreshAlarms()
+        refreshEvents()
     }
 
     // MARK: UI
@@ -87,7 +101,7 @@ final class AlarmSettingsViewController: UIViewController {
         stack.addArrangedSubview(sectionHeader("SET AN ALARM"))
         datePicker.datePickerMode = .time
         datePicker.preferredDatePickerStyle = .wheels
-        datePicker.heightAnchor.constraint(equalToConstant: 120).isActive = true
+        datePicker.heightAnchor.constraint(equalToConstant: 160).isActive = true
         stack.addArrangedSubview(datePicker)
 
         titleField.placeholder = "What is it for? (e.g. Armor check-in)"
@@ -104,6 +118,7 @@ final class AlarmSettingsViewController: UIViewController {
         dailyLabel.font = .systemFont(ofSize: 15)
         dailyRow.addArrangedSubview(dailyLabel)
         dailyRow.addArrangedSubview(dailySwitch)
+        dailySwitch.addTarget(self, action: #selector(dailyChanged), for: .valueChanged)
         stack.addArrangedSubview(dailyRow)
 
         addAlarmButton.setTitle("➕ Add alarm", for: .normal)
@@ -136,14 +151,18 @@ final class AlarmSettingsViewController: UIViewController {
         testChainButton.addTarget(self, action: #selector(testChainTapped), for: .touchUpInside)
         stack.addArrangedSubview(testChainButton)
 
-        // -- CALENDAR SYNC (optional) -----------------------------------------
+        // -- CALENDAR EVENTS: set an event, attach its alarms ------------------
         stack.addArrangedSubview(divider())
-        stack.addArrangedSubview(sectionHeader("CALENDAR SYNC (OPTIONAL)"))
+        stack.addArrangedSubview(sectionHeader("CALENDAR EVENTS — ATTACH ALARMS"))
         syncHint.numberOfLines = 0
         syncHint.font = .systemFont(ofSize: 13)
         syncHint.textColor = .secondaryLabel
-        syncHint.text = "Sign in to also fire alarms from your Armor of God web app calendar events (day before + one hour before each event)."
+        syncHint.text = "Set events in the app's Calendar & Planner, then attach alarms to them here: tap an event and toggle how far in advance it should scream (15 min to 1 day — any combination)."
         stack.addArrangedSubview(syncHint)
+        eventsStack.axis = .vertical
+        eventsStack.spacing = 8
+        stack.addArrangedSubview(eventsStack)
+        stack.addArrangedSubview(sectionHeader("SYNC ACCOUNT (OPTIONAL)"))
 
         emailField.placeholder = "Armor of God account email"
         emailField.keyboardType = .emailAddress
@@ -193,12 +212,27 @@ final class AlarmSettingsViewController: UIViewController {
 
     // MARK: Set alarm
 
+    /// Daily alarms need just a time; one-time alarms pick an exact date + time.
+    @objc private func dailyChanged() {
+        datePicker.datePickerMode = dailySwitch.isOn ? .time : .dateAndTime
+    }
+
     @objc private func addAlarmTapped() {
-        let comps = Calendar.current.dateComponents([.hour, .minute], from: datePicker.date)
-        NotificationScheduler.shared.addManual(title: titleField.text ?? "",
-                                                hour: comps.hour ?? 0,
-                                                minute: comps.minute ?? 0,
-                                                daily: dailySwitch.isOn)
+        let date = datePicker.date
+        let comps = Calendar.current.dateComponents([.hour, .minute], from: date)
+        if dailySwitch.isOn {
+            NotificationScheduler.shared.addManual(title: titleField.text ?? "",
+                                                    hour: comps.hour ?? 0,
+                                                    minute: comps.minute ?? 0,
+                                                    daily: true)
+        } else {
+            // One-time: the picker holds the exact date AND time.
+            NotificationScheduler.shared.addManual(title: titleField.text ?? "",
+                                                    hour: comps.hour ?? 0,
+                                                    minute: comps.minute ?? 0,
+                                                    daily: false,
+                                                    dateISO: ISO8601DateFormatter().string(from: date))
+        }
         titleField.text = ""
         refreshAlarms()
     }
@@ -231,7 +265,15 @@ final class AlarmSettingsViewController: UIViewController {
                        ?? String(format: "%02d:%02d", alarm.hour, alarm.minute)
             timeL.font = .boldSystemFont(ofSize: 17)
             let titleL = UILabel()
-            titleL.text = alarm.title + (alarm.daily ? "" : "  (once)")
+            if alarm.daily {
+                titleL.text = alarm.title
+            } else if let iso = alarm.dateISO, let d = ISO8601DateFormatter().date(from: iso) {
+                let df = DateFormatter()
+                df.dateFormat = "EEE, MMM d"
+                titleL.text = "\(alarm.title) — \(df.string(from: d)) (once)"
+            } else {
+                titleL.text = alarm.title + "  (once)"
+            }
             titleL.font = .systemFont(ofSize: 15)
             titleL.textColor = .secondaryLabel
             titleL.setContentHuggingPriority(.required, for: .horizontal)
@@ -320,6 +362,111 @@ final class AlarmSettingsViewController: UIViewController {
         statusLabel.text = "Rings in 15 seconds — lock the phone, then tap the notification and slide right."
     }
 
+    // MARK: Calendar events — attach alarms
+
+    /// Loads upcoming events (when signed in) and builds the tappable list.
+    func refreshEvents() {
+        guard AlarmSyncClient.shared.hasAccount else {
+            clearStack(eventsStack)
+            syncHint.text = "Sign in below to attach alarms to your Calendar & Planner events: each event can scream 15 min, 30 min, 1 hr, 2 hrs, 3 hrs, or 1 day ahead — any combination."
+            return
+        }
+        AlarmSyncClient.shared.fetchEvents { events in
+            let upcoming = (events ?? []).compactMap { e -> (PlannedEvent, Date)? in
+                guard let d = e.nextOccurrence(after: Date()) else { return nil }
+                return (e, d)
+            }.sorted { $0.1 < $1.1 }.prefix(8)
+            DispatchQueue.main.async {
+                self.calendarEvents = upcoming.map { $0.0 }
+                self.buildEventRows()
+            }
+        }
+    }
+
+    private func buildEventRows() {
+        clearStack(eventsStack)
+        let timeFmt = DateFormatter()
+        timeFmt.dateFormat = "EEE, MMM d · h:mm a"
+        for event in calendarEvents {
+            let row = EventRowButton(type: .system)
+            row.eventId = event.id
+            let when = event.nextOccurrence(after: Date()).map { timeFmt.string(from: $0) } ?? ""
+            row.setTitle("\(event.title)\n\(when)", for: .normal)
+            row.titleLabel?.numberOfLines = 2
+            row.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+            row.titleLabel?.textAlignment = .left
+            row.contentHorizontalAlignment = .left
+            row.setTitleColor(.label, for: .normal)
+            row.backgroundColor = UIColor(white: 0.94, alpha: 1)
+            row.layer.cornerRadius = 10
+            row.contentEdgeInsets = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
+            row.addTarget(self, action: #selector(eventTapped(_:)), for: .touchUpInside)
+            eventsStack.addArrangedSubview(row)
+
+            if expandedEventId == event.id {
+                let chips = UIStackView()
+                chips.axis = .horizontal
+                chips.spacing = 6
+                chips.distribution = .fillEqually
+                let offsets = NotificationScheduler.shared.eventOffsets(id: event.id)
+                for opt in NotificationScheduler.leadOptions {
+                    let chip = ChipButton(type: .system)
+                    chip.eventId = event.id
+                    chip.minutes = opt.minutes
+                    chip.setTitle(opt.label, for: .normal)
+                    chip.titleLabel?.font = .boldSystemFont(ofSize: 12)
+                    chip.layer.cornerRadius = 12
+                    chip.contentEdgeInsets = UIEdgeInsets(top: 8, left: 6, bottom: 8, right: 6)
+                    styleChip(chip, on: offsets.contains(opt.minutes))
+                    chip.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
+                    chips.addArrangedSubview(chip)
+                }
+                eventsStack.addArrangedSubview(chips)
+            }
+        }
+        if calendarEvents.isEmpty {
+            syncHint.text = "Signed in, but no upcoming events found — add events in the app's Calendar & Planner and Sync now."
+        }
+    }
+
+    private func styleChip(_ chip: UIButton, on: Bool) {
+        if on {
+            chip.backgroundColor = .systemOrange
+            chip.setTitleColor(.white, for: .normal)
+        } else {
+            chip.backgroundColor = UIColor(white: 0.90, alpha: 1)
+            chip.setTitleColor(.darkGray, for: .normal)
+        }
+    }
+
+    @objc private func eventTapped(_ sender: EventRowButton) {
+        expandedEventId = expandedEventId == sender.eventId ? nil : sender.eventId
+        buildEventRows()
+    }
+
+    @objc private func chipTapped(_ sender: ChipButton) {
+        var offsets = NotificationScheduler.shared.eventOffsets(id: sender.eventId)
+        if offsets.contains(sender.minutes) {
+            offsets.remove(sender.minutes)
+        } else {
+            offsets.insert(sender.minutes)
+        }
+        NotificationScheduler.shared.setEventOffsets(id: sender.eventId, offsets: offsets)
+        // Re-style every chip of this event in place (no rebuild needed).
+        for case let chip as ChipButton in eventsStack.subviews.flatMap({ $0.subviews }) {
+            if chip.eventId == sender.eventId {
+                styleChip(chip, on: offsets.contains(chip.minutes))
+            }
+        }
+    }
+
+    private func clearStack(_ s: UIStackView) {
+        for v in s.arrangedSubviews {
+            s.removeArrangedSubview(v)
+            v.removeFromSuperview()
+        }
+    }
+
     // MARK: Calendar sync (optional)
 
     @objc private func signInTapped() {
@@ -334,6 +481,7 @@ final class AlarmSettingsViewController: UIViewController {
                 NotificationScheduler.shared.syncAndSchedule()
             }
             self.refreshAlarms()
+            self.refreshEvents()
         }
     }
 
@@ -346,6 +494,9 @@ final class AlarmSettingsViewController: UIViewController {
     @objc private func syncNowTapped() {
         statusLabel.text = "Syncing…"
         NotificationScheduler.shared.syncAndSchedule()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self.refreshAlarms() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            self.refreshAlarms()
+            self.refreshEvents()
+        }
     }
 }

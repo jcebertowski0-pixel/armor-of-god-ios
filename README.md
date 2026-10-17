@@ -76,6 +76,21 @@ The Phone Alarms screen is now what an alarm screen should be:
 - Bug fix: a resync no longer erases unacknowledged missed alarms — the swipe
   demand survives every reschedule.
 
+## Build 6 — Attach alarms to calendar events, custom lead times (2026-10-17)
+
+- **Calendar events can carry their own alarms.** On the Phone Alarms screen,
+  upcoming web-app calendar events are listed (after the optional sign-in).
+  Tap an event and toggle lead times: 15 min, 30 min, 1 hr, 2 hrs, 3 hrs, or
+  1 day before — ANY combination, or none at all (silent event). Untouched
+  events keep the classic defaults (1 hour + 1 day before). Each attached
+  alarm rings with the full Clock-style experience, including the repeat
+  chain and the swipe-right demand if missed.
+- **One-time alarms on a specific day.** With "Repeat every day" off, the
+  picker switches to date + time, so an alarm can be set for, say, Tuesday
+  at 3:30 PM exactly. It fires once, demands its swipe, then clears itself.
+- Acknowledgments of event alarms (any lead time) report to the web app's
+  dashboard; manual and test alarms stay phone-local.
+
 ## Apple's honest limits (different from Android)
 
 - **Notification sounds respect the mute switch** — but the full-screen alarm's

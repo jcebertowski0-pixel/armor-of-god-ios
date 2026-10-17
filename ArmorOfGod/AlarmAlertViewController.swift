@@ -81,6 +81,14 @@ final class AlarmAlertViewController: UIViewController {
         stopVibration()
     }
 
+    /// "lead_30" -> "STARTS IN 30 MINUTES" etc.
+    private func leadText(_ kind: String) -> String {
+        guard let m = Int(kind.dropFirst(5)) else { return "ALARM" }
+        if m >= 1440 { return m / 1440 == 1 ? "TOMORROW'S EVENT" : "IN \(m / 1440) DAYS" }
+        if m >= 60 { return m == 60 ? "STARTS IN ONE HOUR" : "STARTS IN \(m / 60) HOURS" }
+        return "STARTS IN \(m) MINUTES"
+    }
+
     // MARK: UI
 
     private func buildUI() {
@@ -133,8 +141,8 @@ final class AlarmAlertViewController: UIViewController {
             timeLabel.adjustsFontSizeToFitWidth = true
             timeLabel.minimumScaleFactor = 0.5
 
-            kindLabel.text = event.kind == "day_before" ? "TOMORROW'S EVENT"
-                             : event.kind == "one_hour" ? "STARTS IN ONE HOUR"
+            kindLabel.text = event.kind.hasPrefix("lead_")
+                             ? leadText(event.kind)
                              : event.kind == "snooze" ? "SNOOZED REMINDER"
                              : event.kind == "manual" ? "YOUR ALARM"
                              : "ALARM"
