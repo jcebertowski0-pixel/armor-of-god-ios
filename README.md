@@ -55,6 +55,27 @@ The alarm now behaves like the iPhone Clock alarm:
   reloads right away. Time-Sensitive notification support enabled so alarms
   break through Focus modes.
 
+## Build 5 — Phone Alarms, no ceremony: set, test, pick (2026-10-17)
+
+The Phone Alarms screen is now what an alarm screen should be:
+
+- **Set an alarm directly on the phone.** Pick a time, name it, repeat-daily
+  toggle, Add. No account needed. Daily alarms use a repeating iOS trigger, so
+  they re-arm themselves even if the app is never opened. One-time alarms fire
+  once and then clear themselves after acknowledgment.
+- **Test alarm NOW.** One tap shows the real full-screen alarm immediately —
+  ringtone, vibration, slide-right. A small link also tests the locked-phone
+  notification chain (rings in 15 s).
+- **Ringtones:** Radar (default), Siren, Buzzer, Bell — tap one to hear a
+  4-second preview; all alarms re-arm with the new sound.
+- **Alarm screens:** Clock face (default — giant live "05:47 AM" digital clock
+  like the Phone Alarms tile), Dark (big event time + title), Red (war-room).
+- **Sign-in demoted to an optional "Calendar sync" section** at the bottom — it
+  only adds web-app calendar event alarms (day before + one hour before each
+  event). Manual alarms never require it.
+- Bug fix: a resync no longer erases unacknowledged missed alarms — the swipe
+  demand survives every reschedule.
+
 ## Apple's honest limits (different from Android)
 
 - **Notification sounds respect the mute switch** — but the full-screen alarm's

@@ -9,27 +9,49 @@ import AudioToolbox
 /// Clock alarm. Presented any time an alarm fires while the app is open, when a
 /// notification is tapped, and when the app is opened with an unacknowledged
 /// (missed) alarm — however late that happens.
+///
+/// Styles (picked on the Phone Alarms screen):
+///  - "clock": the big live digital clock face — giant "05:47 AM" ticking in
+///    real time, like the phone in the app's Phone Alarms tile.
+///  - "dark": big event time + title on black.
+///  - "red": same layout, war-room red.
 final class AlarmAlertViewController: UIViewController {
 
     private let event: PendingAlarm
     private let onAcknowledged: (PendingAlarm) -> Void
+    private let style: String
 
     private var player: AVAudioPlayer?
     private var vibrateTimer: Timer?
     private var pulseTimer: Timer?
+    private var clockTimer: Timer?
 
     private let timeLabel = UILabel()
+    private let dateLabel = UILabel()
+    private let kindLabel = UILabel()
+    private let eventCard = UIView()
     private let titleLabel = UILabel()
     private let notesLabel = UILabel()
-    private let kindLabel = UILabel()
     private let sliderTrack = UIView()
     private let sliderThumb = UIView()
     private let sliderHint = UILabel()
     private let knobLabel = UILabel()
 
+    private let accent: UIColor
+    private let bg: UIColor
+
     init(event: PendingAlarm, onAcknowledged: @escaping (PendingAlarm) -> Void) {
         self.event = event
         self.onAcknowledged = onAcknowledged
+        self.style = NotificationScheduler.shared.style
+        if style == "red" {
+            accent = UIColor(red: 0.95, green: 0.18, blue: 0.18, alpha: 1)
+            bg = UIColor(red: 0.12, green: 0.02, blue: 0.02, alpha: 1)
+        } else {
+            // Clock face and dark share the black canvas + alarm-orange knob.
+            accent = UIColor(red: 1.0, green: 0.55, blue: 0.0, alpha: 1)
+            bg = UIColor(white: 0.03, alpha: 1)
+        }
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .fullScreen
         modalTransitionStyle = .coverVertical
@@ -42,11 +64,12 @@ final class AlarmAlertViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(white: 0.03, alpha: 1)
+        view.backgroundColor = bg
         buildUI()
         startRingtone()
         startVibration()
         startPulse()
+        if style == "clock" { startClock() }
         // In case we were opened from a dead state, kick a background sync so the
         // web app dashboard reflects the acknowledgment as soon as possible.
         NotificationScheduler.shared.syncAndSchedule()
@@ -61,64 +84,118 @@ final class AlarmAlertViewController: UIViewController {
     // MARK: UI
 
     private func buildUI() {
-        let clock = DateFormatter()
-        clock.timeStyle = .short
-        timeLabel.text = clock.string(from: event.firedAt)
-        timeLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 80, weight: .medium)
-        timeLabel.textColor = .white
-        timeLabel.textAlignment = .center
-        timeLabel.adjustsFontSizeToFitWidth = true
-        timeLabel.minimumScaleFactor = 0.5
+        for v in [timeLabel, kindLabel, eventCard, titleLabel, notesLabel] {
+            v.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(v)
+        }
+        if style == "clock" {
+            dateLabel.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(dateLabel)
+        }
 
-        kindLabel.text = event.kind == "day_before" ? "TOMORROW'S EVENT"
-                         : event.kind == "one_hour" ? "STARTS IN ONE HOUR"
-                         : event.kind == "snooze" ? "SNOOZED REMINDER"
-                         : "ALARM"
-        kindLabel.font = .boldSystemFont(ofSize: 17)
-        kindLabel.textColor = UIColor(red: 1.0, green: 0.55, blue: 0.0, alpha: 1)
-        kindLabel.textAlignment = .center
+        eventCard.backgroundColor = UIColor(white: 0.10, alpha: 1)
+        eventCard.layer.cornerRadius = 18
+        eventCard.addSubview(titleLabel)
+        eventCard.addSubview(notesLabel)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        notesLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        titleLabel.text = "🔔 " + event.title
-        titleLabel.font = .boldSystemFont(ofSize: 30)
+        let clockFmt = DateFormatter()
+        clockFmt.dateFormat = "hh:mm a"
+
+        if style == "clock" {
+            // The big live digital clock: "05:47 AM" like the Clock app.
+            timeLabel.text = clockFmt.string(from: Date())
+            timeLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 92, weight: .medium)
+            timeLabel.textColor = .white
+            timeLabel.textAlignment = .center
+            timeLabel.adjustsFontSizeToFitWidth = true
+            timeLabel.minimumScaleFactor = 0.4
+
+            let dayFmt = DateFormatter()
+            dayFmt.dateFormat = "EEEE, MMM d"
+            dateLabel.text = dayFmt.string(from: Date())
+            dateLabel.font = .systemFont(ofSize: 19)
+            dateLabel.textColor = UIColor(white: 0.65, alpha: 1)
+            dateLabel.textAlignment = .center
+
+            kindLabel.text = "ALARM"
+            kindLabel.font = .boldSystemFont(ofSize: 15)
+            kindLabel.textColor = accent
+            kindLabel.textAlignment = .center
+        } else {
+            let firedFmt = DateFormatter()
+            firedFmt.timeStyle = .short
+            timeLabel.text = firedFmt.string(from: event.firedAt)
+            timeLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 80, weight: .medium)
+            timeLabel.textColor = .white
+            timeLabel.textAlignment = .center
+            timeLabel.adjustsFontSizeToFitWidth = true
+            timeLabel.minimumScaleFactor = 0.5
+
+            kindLabel.text = event.kind == "day_before" ? "TOMORROW'S EVENT"
+                             : event.kind == "one_hour" ? "STARTS IN ONE HOUR"
+                             : event.kind == "snooze" ? "SNOOZED REMINDER"
+                             : event.kind == "manual" ? "YOUR ALARM"
+                             : "ALARM"
+            kindLabel.font = .boldSystemFont(ofSize: 17)
+            kindLabel.textColor = accent
+            kindLabel.textAlignment = .center
+        }
+
+        titleLabel.text = event.title.isEmpty ? "Armor of God" : "🔔 " + event.title
+        titleLabel.font = .boldSystemFont(ofSize: 26)
         titleLabel.textColor = .white
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 0
 
         notesLabel.text = event.notes.isEmpty ? "" : event.notes
-        notesLabel.font = .systemFont(ofSize: 18)
-        notesLabel.textColor = UIColor(white: 0.75, alpha: 1)
+        notesLabel.font = .systemFont(ofSize: 16)
+        notesLabel.textColor = UIColor(white: 0.72, alpha: 1)
         notesLabel.textAlignment = .center
         notesLabel.numberOfLines = 4
-
-        for v in [timeLabel, kindLabel, titleLabel, notesLabel] {
-            v.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(v)
-        }
 
         buildSlider()
 
         NSLayoutConstraint.activate([
-            timeLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 70),
+            timeLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor,
+                                           constant: style == "clock" ? 90 : 70),
             timeLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             timeLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
 
-            kindLabel.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 10),
             kindLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             kindLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
 
-            titleLabel.topAnchor.constraint(equalTo: kindLabel.bottomAnchor, constant: 24),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            eventCard.topAnchor.constraint(equalTo: kindLabel.bottomAnchor, constant: 28),
+            eventCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            eventCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
 
-            notesLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            notesLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            notesLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            titleLabel.topAnchor.constraint(equalTo: eventCard.topAnchor, constant: 18),
+            titleLabel.leadingAnchor.constraint(equalTo: eventCard.leadingAnchor, constant: 16),
+            titleLabel.trailingAnchor.constraint(equalTo: eventCard.trailingAnchor, constant: -16),
+            titleLabel.bottomAnchor.constraint(equalTo: notesLabel.topAnchor, constant: -4),
+            notesLabel.leadingAnchor.constraint(equalTo: eventCard.leadingAnchor, constant: 16),
+            notesLabel.trailingAnchor.constraint(equalTo: eventCard.trailingAnchor, constant: -16),
+            notesLabel.bottomAnchor.constraint(equalTo: eventCard.bottomAnchor, constant: -16),
 
             sliderTrack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
             sliderTrack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
             sliderTrack.heightAnchor.constraint(equalToConstant: 84),
             sliderTrack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -70)
         ])
+
+        if style == "clock" {
+            NSLayoutConstraint.activate([
+                dateLabel.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 2),
+                dateLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+                dateLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+                kindLabel.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 14)
+            ])
+        } else {
+            NSLayoutConstraint.activate([
+                kindLabel.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 10)
+            ])
+        }
     }
 
     /// The swipe-right-to-acknowledge slider: iPhone unlock / Clock stop style.
@@ -136,7 +213,7 @@ final class AlarmAlertViewController: UIViewController {
         sliderTrack.addSubview(sliderHint)
 
         sliderThumb.translatesAutoresizingMaskIntoConstraints = false
-        sliderThumb.backgroundColor = UIColor(red: 1.0, green: 0.55, blue: 0.0, alpha: 1)
+        sliderThumb.backgroundColor = accent
         sliderThumb.layer.cornerRadius = 38
         sliderThumb.isUserInteractionEnabled = true
         sliderTrack.addSubview(sliderThumb)
@@ -166,7 +243,6 @@ final class AlarmAlertViewController: UIViewController {
     }
 
     private var dragging = false
-
     private var dragStartConstant: CGFloat = 4
 
     @objc private func panThumb(_ gr: UIPanGestureRecognizer) {
@@ -220,7 +296,9 @@ final class AlarmAlertViewController: UIViewController {
             // .playback ignores the physical silent switch — a real alarm.
             try AVAudioSession.sharedInstance().setCategory(.playback, options: [.duckOthers])
             try AVAudioSession.sharedInstance().setActive(true)
-            if let url = Bundle.main.url(forResource: "AlarmSound", withExtension: "wav") {
+            let file = NotificationScheduler.soundFile(for: NotificationScheduler.shared.ringtone)
+            if let url = Bundle.main.url(forResource: (file as NSString).deletingPathExtension,
+                                          withExtension: "wav") {
                 player = try AVAudioPlayer(contentsOf: url)
                 player?.numberOfLoops = -1
                 player?.volume = 1.0
@@ -237,7 +315,7 @@ final class AlarmAlertViewController: UIViewController {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    // MARK: Vibration + pulse
+    // MARK: Vibration + pulse + live clock
 
     private func startVibration() {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
@@ -257,6 +335,16 @@ final class AlarmAlertViewController: UIViewController {
             UIView.animate(withDuration: 0.25, animations: {
                 self.kindLabel.alpha = self.kindLabel.alpha > 0.5 ? 0.35 : 1.0
             })
+        }
+    }
+
+    /// Ticks the big clock face every second, like the Clock app.
+    private func startClock() {
+        clockTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            let fmt = DateFormatter()
+            fmt.dateFormat = "hh:mm a"
+            self.timeLabel.text = fmt.string(from: Date())
         }
     }
 }

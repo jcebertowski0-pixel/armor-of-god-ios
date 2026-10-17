@@ -70,6 +70,14 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
         root.present(vc, animated: true)
     }
 
+    /// "Test alarm NOW" on the Phone Alarms screen: full-screen alarm immediately.
+    func presentTestAlarmNow() {
+        let alarm = PendingAlarm(id: "test", title: "Test alarm", notes: "", kind: "test", firedAt: Date())
+        alarmQueue.removeAll { $0.id == "test" }
+        alarmQueue.insert(alarm, at: 0)
+        presentNextAlarm()
+    }
+
     /// Called by AlarmAlertViewController after its slide-right and dismissal.
     func alarmScreenDidFinish() {
         alarmOnScreen = false

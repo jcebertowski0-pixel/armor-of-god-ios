@@ -14,6 +14,9 @@
 		A0A000000000000000000005 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000005 /* NotificationScheduler.swift */; };
 		A0A000000000000000000006 /* AlarmSound.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000006 /* AlarmSound.wav */; };
 		A0A000000000000000000008 /* AlarmAlertViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000008 /* AlarmAlertViewController.swift */; };
+		A0A000000000000000000009 /* AlarmSiren.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000009 /* AlarmSiren.wav */; };
+		A0A000000000000000000010 /* AlarmBuzzer.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000010 /* AlarmBuzzer.wav */; };
+		A0A000000000000000000011 /* AlarmBell.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000011 /* AlarmBell.wav */; };
 		A0A000000000000000000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000007 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -25,6 +28,9 @@
 		A0B000000000000000000005 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		A0B000000000000000000006 /* AlarmSound.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmSound.wav; sourceTree = "<group>"; };
 		A0B000000000000000000008 /* AlarmAlertViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmAlertViewController.swift; sourceTree = "<group>"; };
+		A0B000000000000000000009 /* AlarmSiren.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmSiren.wav; sourceTree = "<group>"; };
+		A0B000000000000000000010 /* AlarmBuzzer.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmBuzzer.wav; sourceTree = "<group>"; };
+		A0B000000000000000000011 /* AlarmBell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmBell.wav; sourceTree = "<group>"; };
 		A0B000000000000000000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A0B000000000000000000010 /* ArmorOfGod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ArmorOfGod.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -48,6 +54,9 @@
 				A0B000000000000000000005 /* NotificationScheduler.swift */,
 				A0B000000000000000000008 /* AlarmAlertViewController.swift */,
 				A0B000000000000000000006 /* AlarmSound.wav */,
+				A0B000000000000000000009 /* AlarmSiren.wav */,
+				A0B000000000000000000010 /* AlarmBuzzer.wav */,
+				A0B000000000000000000011 /* AlarmBell.wav */,
 				A0B000000000000000000007 /* Assets.xcassets */,
 			);
 			path = ArmorOfGod;
@@ -120,6 +129,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				A0A000000000000000000006 /* AlarmSound.wav in Resources */,
+				A0A000000000000000000009 /* AlarmSiren.wav in Resources */,
+				A0A000000000000000000010 /* AlarmBuzzer.wav in Resources */,
+				A0A000000000000000000011 /* AlarmBell.wav in Resources */,
 				A0A000000000000000000007 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

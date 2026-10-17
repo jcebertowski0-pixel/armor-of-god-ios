@@ -4,23 +4,32 @@ import UserNotifications
 /// A scheduled alarm fire, persisted so a MISSED alarm can still demand the
 /// swipe-right acknowledgment the next time the app is opened — however late.
 struct ExpectedFire: Codable {
-    let id: String        // event id or "test"
+    let id: String        // event id, manual alarm id, or "test"
     let title: String
     let notes: String
-    let kind: String      // day_before | one_hour | snooze | test
+    let kind: String      // day_before | one_hour | snooze | test | manual
     let fireISO: String   // ISO8601 fire time
 
     var fireDate: Date? { ISO8601DateFormatter().date(from: fireISO) }
 }
 
+/// An alarm the owner set directly on the phone (no web-app account needed).
+struct ManualAlarm: Codable, Equatable {
+    let id: String
+    let title: String
+    let hour: Int
+    let minute: Int
+    let daily: Bool
+}
+
 /**
- * Schedules the aggressive Armor of God reminders:
- *  - DAY BEFORE the event (24 hours prior)
- *  - DAY OF, ONE HOUR BEFORE
+ * The alarm engine. Two sources of alarms:
+ *  - MANUAL alarms set right on the phone (the main flow — no sign-in needed)
+ *  - WEB-APP calendar events (optional sign-in): day-before + one-hour-before
  *
  * Fire behavior (as Clock-like as iOS allows for an app):
- *  - The notification rings with a long alarm sound. A repeat chain re-fires it
- *    4 and 8 minutes later if it was missed, buzzing the phone again.
+ *  - The notification rings with the selected alarm sound. A repeat chain
+ *    re-fires it 4 and 8 minutes later if it was missed.
  *  - Tapping the notification (or opening the app later) shows a FULL-SCREEN
  *    alarm with a looping ringtone that plays even on the silent switch, plus
  *    repeated vibration. The only way out is SLIDING RIGHT to acknowledge.
@@ -32,6 +41,10 @@ final class NotificationScheduler {
     private let center = UNUserNotificationCenter.current()
     private let firesKey = "aog_expected_fires"
     private let ackKey = "aog_acked_fires"
+    private let manualKey = "aog_manual_alarms"
+
+    static let ringtones = ["radar", "siren", "buzzer", "bell"]
+    static let styles = ["clock", "dark", "red"]
 
     // MARK: Authorization
 
@@ -52,30 +65,50 @@ final class NotificationScheduler {
 
     // MARK: Sync + schedule
 
-    /// Fetch events from the web app and (re)schedule all alarms.
+    /// Re-arms everything: manual alarms (always) + web-app events (if signed in).
     func syncAndSchedule() {
-        guard AlarmSyncClient.shared.hasAccount else { return }
         AlarmSyncClient.shared.fetchEvents { events in
-            guard let events = events, !events.isEmpty else { return }
-            self.schedule(events: events)
+            self.reschedule(events: events ?? [])
         }
     }
 
-    func schedule(events: [PlannedEvent]) {
+    func reschedule(events: [PlannedEvent]) {
         center.removeAllPendingNotificationRequests()
         let now = Date()
         var fires = [ExpectedFire]()
-        let sorted = events.sorted { ($0.startDate ?? .distantPast) < ($1.startDate ?? .distantPast) }
         var alarmsScheduled = 0
+
+        // Manual alarms first — the owner set these by hand.
+        for manual in loadManual() {
+            guard alarmsScheduled < 20 else { break }
+            let title = manual.title.isEmpty ? "Alarm" : manual.title
+            if manual.daily {
+                // A repeating trigger fires every day on its own, even if the
+                // app is never opened again. No +4/+8 chain for these.
+                addRepeatingNotification(id: manual.id, title: title, hour: manual.hour, minute: manual.minute)
+                if let fireDate = nextOccurrence(hour: manual.hour, minute: manual.minute, after: now) {
+                    fires.append(ExpectedFire(id: manual.id, title: title, notes: "",
+                                              kind: "manual", fireISO: iso.string(from: fireDate)))
+                }
+            } else if let fireDate = nextOccurrence(hour: manual.hour, minute: manual.minute, after: now) {
+                addNotification(id: manual.id, title: title, notes: "", kind: "manual",
+                                bodyText: "Time to acknowledge this", date: fireDate, suffix: "")
+                fires.append(ExpectedFire(id: manual.id, title: title, notes: "",
+                                          kind: "manual", fireISO: iso.string(from: fireDate)))
+            }
+            alarmsScheduled += 1
+        }
+
+        let sorted = events.sorted { ($0.startDate ?? .distantPast) < ($1.startDate ?? .distantPast) }
         for event in sorted {
             guard let start = event.nextOccurrence(after: now) else { continue }
             for (kind, offset, text) in [("day_before", -86400.0, "Your event is TOMORROW"),
                                          ("one_hour", -3600.0, "Your event starts in ONE HOUR")] {
-                // 20 alarms * 3 notifications (fire + 2 repeats) = 60, under the 64 cap.
                 if alarmsScheduled >= 20 { break }
                 let fireDate = start.addingTimeInterval(offset)
                 if fireDate <= now { continue }
-                add(event: event, kind: kind, bodyText: text, date: fireDate)
+                addNotification(id: event.id, title: event.title, notes: event.notes, kind: kind,
+                                bodyText: text, date: fireDate, suffix: "")
                 fires.append(ExpectedFire(id: event.id, title: event.title, notes: event.notes,
                                           kind: kind, fireISO: iso.string(from: fireDate)))
                 alarmsScheduled += 1
@@ -84,39 +117,98 @@ final class NotificationScheduler {
         saveFires(fires)
     }
 
-    private func add(event: PlannedEvent, kind: String, bodyText: String, date: Date) {
-        // Main fire + repeat chain: if the first alert is slept through, the
-        // phone rings again 4 minutes and 8 minutes later.
-        addNotification(id: event.id, title: event.title, notes: event.notes, kind: kind,
-                        bodyText: bodyText, date: date, suffix: "")
-        addNotification(id: event.id, title: event.title, notes: event.notes, kind: kind,
-                        bodyText: "MISSED ALARM — ringing again", date: date.addingTimeInterval(4 * 60),
-                        suffix: "_r1")
-        addNotification(id: event.id, title: event.title, notes: event.notes, kind: kind,
-                        bodyText: "STILL UNACKNOWLEDGED — acknowledge this!",
-                        date: date.addingTimeInterval(8 * 60), suffix: "_r2")
+    /// A daily alarm: one repeating notification, fires at hour:minute forever.
+    private func addRepeatingNotification(id: String, title: String, hour: Int, minute: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = "🔔 " + title
+        content.body = "Time to acknowledge this"
+        content.categoryIdentifier = "AOG_EVENT"
+        content.interruptionLevel = .timeSensitive
+        content.userInfo = ["id": id, "title": title, "notes": "", "kind": "manual", "fireISO": ""]
+        content.sound = alarmSound()
+        var comps = DateComponents()
+        comps.hour = hour
+        comps.minute = minute
+        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
+        center.add(UNNotificationRequest(identifier: "aog_" + id + "_manual",
+                                         content: content, trigger: trigger))
+    }
+
+    /// Next time this hour:minute occurs at or after `now` (today or tomorrow).
+    private func nextOccurrence(hour: Int, minute: Int, after now: Date) -> Date? {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = .current
+        var comps = DateComponents()
+        comps.hour = hour
+        comps.minute = minute
+        if let next = cal.nextDate(after: now.addingTimeInterval(-1), matching: comps,
+                                    matchingPolicy: .nextTime) {
+            return next >= now ? next : cal.date(byAdding: .day, to: next)
+        }
+        return nil
     }
 
     private func addNotification(id: String, title: String, notes: String, kind: String,
                                  bodyText: String, date: Date, suffix: String) {
-        let content = UNMutableNotificationContent()
-        content.title = "🔔 " + title
-        content.body = bodyText + (notes.isEmpty ? "" : " · " + notes)
-        content.categoryIdentifier = "AOG_EVENT"
-        content.interruptionLevel = .timeSensitive
-        content.userInfo = ["id": id, "title": title, "notes": notes, "kind": kind,
-                            "fireISO": iso.string(from: date)]
-        content.sound = alarmSound()
-        let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
-        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
-        let request = UNNotificationRequest(identifier: "aog_" + id + "_" + kind + suffix,
-                                            content: content, trigger: trigger)
-        center.add(request)
+        // Main fire + repeat chain: if the first alert is slept through, the
+        // phone rings again 4 minutes and 8 minutes later.
+        let triple: [(String, Date, String)] = [
+            (suffix, date, bodyText),
+            ("\(suffix)_r1", date.addingTimeInterval(4 * 60), "MISSED ALARM — ringing again"),
+            ("\(suffix)_r2", date.addingTimeInterval(8 * 60), "STILL UNACKNOWLEDGED — acknowledge this!")
+        ]
+        for (sfx, when, body) in triple {
+            guard when > Date() else { continue }
+            let content = UNMutableNotificationContent()
+            content.title = "🔔 " + title
+            content.body = body + (notes.isEmpty ? "" : " · " + notes)
+            content.categoryIdentifier = "AOG_EVENT"
+            content.interruptionLevel = .timeSensitive
+            content.userInfo = ["id": id, "title": title, "notes": notes, "kind": kind,
+                                 "fireISO": iso.string(from: date)]
+            content.sound = alarmSound()
+            let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: when)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            let request = UNNotificationRequest(identifier: "aog_" + id + "_" + kind + sfx,
+                                                content: content, trigger: trigger)
+            center.add(request)
+        }
+    }
+
+    // MARK: Manual alarms (the simple flow: set + test, no account)
+
+    func loadManual() -> [ManualAlarm] {
+        guard let data = UserDefaults.standard.data(forKey: manualKey),
+              let alarms = try? JSONDecoder().decode([ManualAlarm].self, from: data) else { return [] }
+        return alarms
+    }
+
+    @discardableResult
+    func addManual(title: String, hour: Int, minute: Int, daily: Bool) -> ManualAlarm {
+        let alarm = ManualAlarm(id: UUID().uuidString,
+                                title: title.isEmpty ? "Alarm" : title,
+                                hour: hour, minute: minute, daily: daily)
+        var all = loadManual()
+        all.append(alarm)
+        saveManual(all)
+        syncAndSchedule()
+        return alarm
+    }
+
+    func removeManual(id: String) {
+        saveManual(loadManual().filter { $0.id != id })
+        syncAndSchedule()
+    }
+
+    private func saveManual(_ alarms: [ManualAlarm]) {
+        if let data = try? JSONEncoder().encode(alarms) {
+            UserDefaults.standard.set(data, forKey: manualKey)
+        }
     }
 
     // MARK: Snooze / test
 
-    /// Same event, 10 minutes later (Snooze action on the notification).
+    /// Same alarm, 10 minutes later (Snooze action on the notification).
     func snooze(eventId: String, title: String, notes: String, kind: String) {
         let date = Date().addingTimeInterval(10 * 60)
         addNotification(id: eventId, title: title, notes: notes, kind: "snooze",
@@ -128,13 +220,13 @@ final class NotificationScheduler {
         saveFires(fires)
     }
 
-    /// The settings-screen test: a real notification through the whole chain.
-    /// Recorded as an expected fire too — miss it and the app still demands
-    /// the swipe next time it opens.
+    /// The full notification chain test: rings in 15 seconds. Recorded as an
+    /// expected fire too — miss it and the app still demands the swipe next
+    /// time it opens.
     func testAlarm() {
         let date = Date().addingTimeInterval(15)
         addNotification(id: "test", title: "Test alarm", notes: "", kind: "test",
-                        bodyText: "This is what a real event alert feels like.", date: date, suffix: "")
+                        bodyText: "This is what a real alarm feels like.", date: date, suffix: "")
         var fires = loadFires().filter { $0.id != "test" }
         fires.append(ExpectedFire(id: "test", title: "Test alarm", notes: "", kind: "test",
                                   fireISO: iso.string(from: date)))
@@ -150,8 +242,7 @@ final class NotificationScheduler {
         let acked = loadAcked()
         return loadFires().compactMap { fire -> PendingAlarm? in
             guard let date = fire.fireDate, date <= now, date > cutoff else { return nil }
-            let key = ackKey(fire)
-            guard !acked.contains(key) else { return nil }
+            guard !acked.contains(ackKey(fire)) else { return nil }
             return PendingAlarm(id: fire.id, title: fire.title, notes: fire.notes,
                                 kind: fire.kind, firedAt: date)
         }
@@ -160,16 +251,63 @@ final class NotificationScheduler {
     /// Called ONLY by the full-screen alarm's slide-right.
     func markAcknowledged(_ alarm: PendingAlarm) {
         var acked = loadAcked()
+        // Ack this exact fire plus any same-alarm fires that already passed
+        // (a repeating daily alarm's notification carries its first fire date).
         acked.insert(ackKey(ExpectedFire(id: alarm.id, title: alarm.title, notes: alarm.notes,
                                          kind: alarm.kind, fireISO: iso.string(from: alarm.firedAt))))
+        for fire in loadFires() where fire.id == alarm.id && fire.kind == alarm.kind {
+            if let d = fire.fireDate, d <= alarm.firedAt.addingTimeInterval(600) {
+                acked.insert(ackKey(fire))
+            }
+        }
         saveAcked(acked)
-        // Stop the repeat chain for this alarm.
-        center.removePendingNotificationRequests(withIdentifiers:
-            ["aog_\(alarm.id)_\(alarm.kind)", "aog_\(alarm.id)_\(alarm.kind)_r1",
-             "aog_\(alarm.id)_\(alarm.kind)_r2"])
-        // Report to the web app so the dashboard updates ASAP (unless it's a test).
-        if alarm.id != "test" {
+        // Stop the repeat chain — but never kill a daily alarm's repeating trigger.
+        let isDailyManual = alarm.kind == "manual" && loadManual().contains(where: { $0.id == alarm.id && $0.daily })
+        if !isDailyManual {
+            center.removePendingNotificationRequests(withIdentifiers:
+                ["aog_\(alarm.id)_\(alarm.kind)", "aog_\(alarm.id)_\(alarm.kind)_r1",
+                 "aog_\(alarm.id)_\(alarm.kind)_r2"])
+        }
+        if alarm.kind == "manual" {
+            // A one-time manual alarm is done after its one fire.
+            if let m = loadManual().first(where: { $0.id == alarm.id }), !m.daily {
+                saveManual(loadManual().filter { $0.id != alarm.id })
+            }
+        }
+        // Web-app alarms report to the dashboard; manual/test alarms stay local.
+        if alarm.kind == "day_before" || alarm.kind == "one_hour" || alarm.kind == "snooze" {
             AlarmSyncClient.shared.reportAck(eventId: alarm.id, title: alarm.title, kind: alarm.kind)
+        }
+    }
+
+    // MARK: Ringtone + style selection
+
+    var ringtone: String {
+        let r = UserDefaults.standard.string(forKey: "aog_ringtone") ?? "radar"
+        return NotificationScheduler.ringtones.contains(r) ? r : "radar"
+    }
+
+    func setRingtone(_ name: String) {
+        UserDefaults.standard.set(name, forKey: "aog_ringtone")
+        syncAndSchedule() // re-arm notifications with the new sound
+    }
+
+    var style: String {
+        let s = UserDefaults.standard.string(forKey: "aog_alarm_style") ?? "clock"
+        return NotificationScheduler.styles.contains(s) ? s : "clock"
+    }
+
+    func setStyle(_ name: String) {
+        UserDefaults.standard.set(name, forKey: "aog_alarm_style")
+    }
+
+    /// File name of the selected ringtone (bundled in the app).
+    static func soundFile(for ringtone: String) -> String {
+        switch ringtone {
+        case "siren": return "AlarmSiren.wav"
+        case "buzzer": return "AlarmBuzzer.wav"
+        case "bell": return "AlarmBell.wav"
+        default: return "AlarmSound.wav"
         }
     }
 
@@ -192,20 +330,29 @@ final class NotificationScheduler {
     }
 
     private func saveFires(_ fires: [ExpectedFire]) {
-        // Merge in snooze/test fires that are still in the future.
+        // Preserve everything that still matters from the previous list:
+        //  - past fires (last 7 days) that are NOT acknowledged — they still
+        //    demand a swipe, so a resync must never erase a missed alarm
+        //  - future snooze/test fires not already in the fresh list
         let existing = loadFires()
         let now = Date()
+        let acked = loadAcked()
         let keep = existing.filter { fire in
-            guard (fire.fireDate ?? now) > now else { return false }
+            let d = fire.fireDate ?? now
+            if d <= now {
+                // Past + unacknowledged = still waiting for its swipe.
+                return d > now.addingTimeInterval(-7 * 86400) && !acked.contains(ackKey(fire))
+            }
             if fire.id == "test" {
-                // Only the newest test alarm survives; pressing "Test" twice
-                // must not stack two swipe-screens.
                 return !fires.contains(where: { $0.id == "test" })
             }
             return fire.kind == "snooze" &&
                 !fires.contains(where: { $0.id == fire.id && $0.kind == fire.kind })
         }
-        let merged = (fires + keep).filter { ($0.fireDate ?? now) > now.addingTimeInterval(-7 * 86400) }
+        var merged = fires + keep
+        // De-dupe by the ack key, keeping the fresh copies.
+        var seen = Set<String>()
+        merged = merged.filter { seen.insert($0.id + "|" + $0.kind + "|" + $0.fireISO).inserted }
         if let data = try? JSONEncoder().encode(merged) {
             UserDefaults.standard.set(data, forKey: firesKey)
         }
@@ -219,10 +366,12 @@ final class NotificationScheduler {
         UserDefaults.standard.set(Array(set).suffix(200), forKey: ackKey)
     }
 
-    /// Uses the bundled 30-second AlarmSound.wav if present, else the system default.
+    /// The selected ringtone as a notification sound.
     private func alarmSound() -> UNNotificationSound {
-        if Bundle.main.url(forResource: "AlarmSound", withExtension: "wav") != nil {
-            return UNNotificationSound(named: UNNotificationSoundName("AlarmSound.wav"))
+        let file = NotificationScheduler.soundFile(for: ringtone)
+        if Bundle.main.url(forResource: (file as NSString).deletingPathExtension,
+                          withExtension: "wav") != nil {
+            return UNNotificationSound(named: UNNotificationSoundName(file))
         }
         return .default
     }
