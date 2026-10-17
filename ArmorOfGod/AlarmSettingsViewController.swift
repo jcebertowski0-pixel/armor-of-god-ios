@@ -107,7 +107,7 @@ final class AlarmSettingsViewController: UIViewController {
 
     @objc private func testTapped() {
         NotificationScheduler.shared.testAlarm()
-        statusLabel.text = "Test alarm set — lock the phone and wait 15 seconds."
+        statusLabel.text = "Test alarm set — it will ring in 15 seconds. Tap the notification and SLIDE RIGHT to acknowledge, like stopping a Clock alarm."
     }
 
     private func refresh() {

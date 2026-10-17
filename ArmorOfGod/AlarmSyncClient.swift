@@ -112,11 +112,32 @@ final class AlarmSyncClient {
         }
     }
 
-    /// Best-effort acknowledgment report (fire and forget).
+    /// Acknowledgment report. Relogins and retries once so the web app's
+    /// dashboard/XP updates ASAP even after a token expiry.
     func reportAck(eventId: String, title: String, kind: String) {
-        guard let token = UserDefaults.standard.string(forKey: "aog_token") else { return }
+        guard hasAccount else { return }
+        if let token = UserDefaults.standard.string(forKey: "aog_token"), !token.isEmpty {
+            postAck(token: token, eventId: eventId, title: title, kind: kind, retried: false)
+        } else {
+            relogin { token in
+                if let token = token {
+                    self.postAck(token: token, eventId: eventId, title: title, kind: kind, retried: true)
+                }
+            }
+        }
+    }
+
+    private func postAck(token: String, eventId: String, title: String, kind: String, retried: Bool) {
         post(path: "functions/reportEventAck", token: token,
-             body: ["event_id": eventId, "title": String(title.prefix(200)), "reminder_kind": kind]) { _, _ in }
+             body: ["event_id": eventId, "title": String(title.prefix(200)), "reminder_kind": kind]) { _, status in
+            if status == 401 && !retried {
+                self.relogin { newToken in
+                    if let newToken = newToken {
+                        self.postAck(token: newToken, eventId: eventId, title: title, kind: kind, retried: true)
+                    }
+                }
+            }
+        }
     }
 
     private func relogin(completion: @escaping (String?) -> Void) {

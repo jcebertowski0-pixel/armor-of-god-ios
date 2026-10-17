@@ -41,6 +41,19 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         super.viewWillAppear(animated)
         // Keep the banner gone, including when coming back from Phone Alarms.
         navigationController?.setNavigationBarHidden(true, animated: animated)
+        // When an alarm gets acknowledged (slide-right), refresh the site so the
+        // dashboard/XP reflects it immediately.
+        NotificationCenter.default.addObserver(self, selector: #selector(ackCompleted),
+                                               name: AppDelegate.ackReloadNotification, object: nil)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        NotificationCenter.default.removeObserver(self, name: AppDelegate.ackReloadNotification, object: nil)
+    }
+
+    @objc private func ackCompleted() {
+        reload()
     }
 
     /// Small translucent floating button, top-right corner. Tapping it opens a

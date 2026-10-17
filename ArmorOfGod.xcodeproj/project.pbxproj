@@ -13,6 +13,7 @@
 		A0A000000000000000000004 /* AlarmSyncClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000004 /* AlarmSyncClient.swift */; };
 		A0A000000000000000000005 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000005 /* NotificationScheduler.swift */; };
 		A0A000000000000000000006 /* AlarmSound.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000006 /* AlarmSound.wav */; };
+		A0A000000000000000000008 /* AlarmAlertViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000008 /* AlarmAlertViewController.swift */; };
 		A0A000000000000000000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000007 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -23,6 +24,7 @@
 		A0B000000000000000000004 /* AlarmSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmSyncClient.swift; sourceTree = "<group>"; };
 		A0B000000000000000000005 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		A0B000000000000000000006 /* AlarmSound.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmSound.wav; sourceTree = "<group>"; };
+		A0B000000000000000000008 /* AlarmAlertViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmAlertViewController.swift; sourceTree = "<group>"; };
 		A0B000000000000000000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A0B000000000000000000010 /* ArmorOfGod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ArmorOfGod.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -44,6 +46,7 @@
 				A0B000000000000000000003 /* AlarmSettingsViewController.swift */,
 				A0B000000000000000000004 /* AlarmSyncClient.swift */,
 				A0B000000000000000000005 /* NotificationScheduler.swift */,
+				A0B000000000000000000008 /* AlarmAlertViewController.swift */,
 				A0B000000000000000000006 /* AlarmSound.wav */,
 				A0B000000000000000000007 /* Assets.xcassets */,
 			);
@@ -133,6 +136,7 @@
 				A0A000000000000000000003 /* AlarmSettingsViewController.swift in Sources */,
 				A0A000000000000000000004 /* AlarmSyncClient.swift in Sources */,
 				A0A000000000000000000005 /* NotificationScheduler.swift in Sources */,
+				A0A000000000000000000008 /* AlarmAlertViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -192,6 +196,7 @@
 				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Armor of God";
+				INFOPLIST_KEY_NSSupportsTimeSensitiveNotifications = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -213,6 +218,7 @@
 				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Armor of God";
+				INFOPLIST_KEY_NSSupportsTimeSensitiveNotifications = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;

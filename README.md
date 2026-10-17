@@ -33,15 +33,42 @@ Requirements: iPhone on iOS 16 or newer.
 After that, no setup needed: every time the app is opened it re-syncs the
 calendar and re-arms all alarms automatically.
 
+## Build 4 — Clock-style alarm with slide-right acknowledgment (2026-10-17)
+
+The alarm now behaves like the iPhone Clock alarm:
+
+- **Full-screen alarm takeover.** When the alarm fires (notification tapped, or
+  app open, or app opened later) a black full-screen alarm appears with the time,
+  the event, a LOOPING Radar-style ringtone that plays EVEN ON THE SILENT SWITCH
+  (AVAudioSession .playback), and vibration every 1.2 seconds.
+- **Slide right to acknowledge.** The only way out is dragging the orange knob
+  all the way right, exactly like stopping a Clock alarm. Release early and it
+  snaps back. No buttons, no tapping elsewhere.
+- **Missed alarms still demand the swipe.** Every scheduled fire is remembered.
+  If an alarm rings and is never acknowledged, the app shows the full-screen
+  swipe alarm the next time it is opened — however late — until it is swiped.
+  Missed alarms queue: if several stack up, they show one after another.
+- **Repeat chain.** If the first alert is slept through, the phone rings again
+  4 minutes and 8 minutes later with the alarm sound, until acknowledged.
+- **Web app updates ASAP.** A swipe-acknowledgment is reported to the web app
+  immediately (with auto-relogin if the token expired) and the web dashboard
+  reloads right away. Time-Sensitive notification support enabled so alarms
+  break through Focus modes.
+
 ## Apple's honest limits (different from Android)
 
-- **No forced screen takeover.** Apple doesn't allow any app to take over the
-  screen or block dismissal. What you get: a time-sensitive notification with an
-  alarm sound and vibration that stays on the lock screen until acknowledged.
-- **The mute switch silences notification sounds.** For can't-miss events, keep
-  the mute switch off. (Apple offers a special "Critical Alerts" entitlement that
-  bypasses the mute switch, but it requires an approval request to Apple — the
-  owner can decide if they want to pursue that:
+- **Notification sounds respect the mute switch** — but the full-screen alarm's
+  ringtone does NOT (it plays at full volume even on silent). So: if the phone
+  is locked and the app is closed, the notification rings (mute switch rules
+  apply, as with any app except Apple's own Clock); the moment the app is
+  opened or the notification is tapped, the looping alarm plays at full volume
+  regardless of the mute switch.
+- **Apple does not let an app wake itself and take over the screen from a cold
+  state** like the Clock app can. The repeat chain (re-ring at +4 and +8 min)
+  plus the missed-alarm swipe demand on every app open is as close as iOS
+  allows. (Apple offers a "Critical Alerts" entitlement that bypasses the mute
+  switch, but it requires an approval request to Apple — the owner can decide
+  if they want to pursue that:
   https://developer.apple.com/contact/request/notifications-critical-alert-entitlement/)
 - The alarm sound (AlarmSound.wav in the project) can be replaced with any
   30-second .wav/.caf file named AlarmSound.
