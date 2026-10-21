@@ -399,9 +399,7 @@ final class AlarmSettingsViewController: UIViewController {
             row.setTitleColor(.label, for: .normal)
             row.backgroundColor = UIColor(white: 0.94, alpha: 1)
             row.layer.cornerRadius = 10
-            var config = UIButton.Configuration.plain()
-            config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
-            row.configuration = config
+            row.contentEdgeInsets = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
             row.addTarget(self, action: #selector(eventTapped(_:)), for: .touchUpInside)
             eventsStack.addArrangedSubview(row)
 
@@ -418,9 +416,7 @@ final class AlarmSettingsViewController: UIViewController {
                     chip.setTitle(opt.label, for: .normal)
                     chip.titleLabel?.font = .boldSystemFont(ofSize: 12)
                     chip.layer.cornerRadius = 12
-                    var cconfig = UIButton.Configuration.plain()
-            cconfig.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 6, bottom: 8, trailing: 6)
-            chip.configuration = cconfig
+                    chip.contentEdgeInsets = UIEdgeInsets(top: 8, left: 6, bottom: 8, right: 6)
                     styleChip(chip, on: offsets.contains(opt.minutes))
                     chip.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
                     chips.addArrangedSubview(chip)
