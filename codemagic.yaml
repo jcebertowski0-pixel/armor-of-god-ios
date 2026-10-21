@@ -8,6 +8,16 @@
 workflows:
   armor-of-god-ios:
     name: Armor of God iOS
+    # AUTO-BUILD: every push to main builds and publishes to TestFlight.
+    # (Without this block, pushes to GitHub triggered NOTHING - builds only
+    # ran when someone clicked "Start new build" in the Codemagic dashboard.)
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: branches
     max_build_duration: 20
     integrations:
       app_store_connect: Codemagic
