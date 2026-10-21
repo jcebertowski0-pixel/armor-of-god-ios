@@ -190,7 +190,7 @@ final class NotificationScheduler {
         comps.minute = minute
         if let next = cal.nextDate(after: now.addingTimeInterval(-1), matching: comps,
                                     matchingPolicy: .nextTime) {
-            return next >= now ? next : cal.date(byAdding: Calendar.Component.day, to: next)
+            return next >= now ? next : cal.date(byAdding: .day, value: 1, to: next)
         }
         return nil
     }
