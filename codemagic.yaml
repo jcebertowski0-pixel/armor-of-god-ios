@@ -29,6 +29,12 @@ workflows:
             --type IOS_APP_STORE --create
           keychain add-certificates
           xcode-project use-profiles --code-signing-setup-verbose-logging
+      - name: Set build number (git commit count, always > TestFlight's last)
+        script: |
+          N=$(git rev-list --count HEAD)
+          echo "Setting CURRENT_PROJECT_VERSION to $N"
+          perl -pi -e "s/CURRENT_PROJECT_VERSION = \d+/CURRENT_PROJECT_VERSION = $N/g" ArmorOfGod.xcodeproj/project.pbxproj
+          grep CURRENT_PROJECT_VERSION ArmorOfGod.xcodeproj/project.pbxproj | head -2
       - name: Build the app
         script: |
           echo "=== DIAGNOSTICS: targets and schemes Xcode sees ==="
