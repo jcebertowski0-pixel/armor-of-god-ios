@@ -14,10 +14,6 @@ workflows:
     triggering:
       events:
         - push
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: branches
     max_build_duration: 20
     integrations:
       app_store_connect: Codemagic
