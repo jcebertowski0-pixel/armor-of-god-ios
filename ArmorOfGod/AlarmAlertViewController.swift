@@ -237,8 +237,13 @@ final class AlarmAlertViewController: UIViewController {
             knobLabel.centerYAnchor.constraint(equalTo: sliderThumb.centerYAnchor)
         ])
 
+        // Strong stored reference to the knob's leading constraint. NEVER look it
+        // up through view.constraints again - that lookup could miss and left
+        // the knob completely unresponsive to drags (alarm could not be
+        // acknowledged at all).
+        sliderLead = sliderThumb.leadingAnchor.constraint(equalTo: sliderTrack.leadingAnchor, constant: 4)
         NSLayoutConstraint.activate([
-            sliderThumb.leadingAnchor.constraint(equalTo: sliderTrack.leadingAnchor, constant: 4),
+            sliderLead,
             sliderThumb.centerYAnchor.constraint(equalTo: sliderTrack.centerYAnchor),
             sliderThumb.widthAnchor.constraint(equalToConstant: 76),
             sliderThumb.heightAnchor.constraint(equalToConstant: 76),
@@ -246,34 +251,41 @@ final class AlarmAlertViewController: UIViewController {
             sliderHint.centerYAnchor.constraint(equalTo: sliderTrack.centerYAnchor)
         ])
 
+        // The recognizer lives on the TRACK, not the little knob: the whole
+        // slider responds to a finger. Grabbing anywhere pulls the knob there.
         let pan = UIPanGestureRecognizer(target: self, action: #selector(panThumb(_:)))
-        sliderThumb.addGestureRecognizer(pan)
+        sliderTrack.addGestureRecognizer(pan)
     }
 
+    private var sliderLead: NSLayoutConstraint!
     private var dragging = false
     private var dragStartConstant: CGFloat = 4
 
     @objc private func panThumb(_ gr: UIPanGestureRecognizer) {
-        guard !dragging else { return }
-        let lead = sliderThumb.constraints.first { $0.firstAttribute == .leading }
         let resting: CGFloat = 4
-        let travel = sliderTrack.bounds.width - 80
+        let trackW = sliderTrack.bounds.width
+        guard trackW > 0, sliderLead != nil, !dragging else { return }
+        let travel = trackW - 80   // knob width 76 + 4pt margins each side
         switch gr.state {
         case .began:
-            dragStartConstant = lead?.constant ?? resting
+            // Grab anywhere in the track: center the knob under the finger.
+            let x = gr.location(in: sliderTrack).x - 38
+            dragStartConstant = Swift.min(Swift.max(resting, x), travel)
+            sliderLead.constant = dragStartConstant
+            sliderTrack.layoutIfNeeded()
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         case .changed:
             let x = gr.translation(in: sliderTrack).x
-            lead?.constant = Swift.min(Swift.max(resting, dragStartConstant + x), travel)
-            sliderHint.alpha = Swift.max(0, 1 - (lead?.constant ?? resting) / (travel * 0.6))
+            sliderLead.constant = Swift.min(Swift.max(resting, dragStartConstant + x), travel)
+            sliderHint.alpha = Swift.max(0, 1 - sliderLead.constant / (travel * 0.6))
+            sliderTrack.layoutIfNeeded()   // follow the finger in this frame
         case .ended, .cancelled:
-            let reachedEnd = (lead?.constant ?? 0) >= sliderTrack.bounds.width - 82
-            if reachedEnd {
+            if sliderLead.constant >= travel {
                 dragging = true
                 acknowledge()
             } else {
                 // Snap back to the start - no half-swipes allowed.
-                lead?.constant = resting
+                sliderLead.constant = resting
                 sliderHint.alpha = 1
                 UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseOut) {
                     self.sliderTrack.layoutIfNeeded()
