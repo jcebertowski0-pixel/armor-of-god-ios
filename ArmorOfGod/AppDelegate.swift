@@ -55,19 +55,26 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
     private var currentAlarm: PendingAlarm?
 
     private func presentNextAlarm() {
-        guard !alarmOnScreen, !alarmQueue.isEmpty, let root = window?.rootViewController else { return }
-        // Dismiss anything on top (webview modals, action sheets) so the alarm
-        // truly takes over the screen.
-        root.dismiss(animated: false)
-        let alarm = alarmQueue.removeFirst()
-        alarmOnScreen = true
-        currentAlarm = alarm
-        let vc = AlarmAlertViewController(event: alarm) { acknowledged in
-            NotificationScheduler.shared.markAcknowledged(acknowledged)
-            // Refresh the web app immediately so the acknowledgment shows ASAP.
-            NotificationCenter.default.post(name: AppDelegate.ackReloadNotification, object: nil)
+        guard !alarmOnScreen, let root = window?.rootViewController else { return }
+        // Skip queue entries that already got their swipe: acking one alarm of
+        // a calendar event acks all of its alarms — an acknowledged fire must
+        // never take over the screen a second time.
+        while !alarmQueue.isEmpty {
+            let next = alarmQueue.removeFirst()
+            if NotificationScheduler.shared.isAcknowledged(next) { continue }
+            // Dismiss anything on top (webview modals, action sheets) so the alarm
+            // truly takes over the screen.
+            root.dismiss(animated: false)
+            alarmOnScreen = true
+            currentAlarm = next
+            let vc = AlarmAlertViewController(event: next) { acknowledged in
+                NotificationScheduler.shared.markAcknowledged(acknowledged)
+                // Refresh the web app immediately so the acknowledgment shows ASAP.
+                NotificationCenter.default.post(name: AppDelegate.ackReloadNotification, object: nil)
+            }
+            root.present(vc, animated: true)
+            return
         }
-        root.present(vc, animated: true)
     }
 
     /// "Test alarm NOW" on the Phone Alarms screen: full-screen alarm immediately.
