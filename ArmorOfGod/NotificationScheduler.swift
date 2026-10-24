@@ -296,21 +296,50 @@ final class NotificationScheduler {
     }
 
     /// Called ONLY by the full-screen alarm's slide-right.
+    /// ONE acknowledgment per thing:
+    ///  - a calendar event: acking ANY of its alarms (e.g. the day-before ring)
+    ///    acks every fire for that event AND cancels all of its pending rings
+    ///    (the one-hour ring included) — the event never demands a second swipe.
+    ///  - a manual/scheduled alarm: acking it (or its snooze) counts for that
+    ///    fire and stops its repeat chain.
+    ///  - a daily alarm: today's fire only. Tomorrow still rings once — daily
+    ///    alarms need exactly one acknowledgment each day.
     func markAcknowledged(_ alarm: PendingAlarm) {
         var acked = loadAcked()
-        // Ack this exact fire plus any same-alarm fires that already passed
-        // (a repeating daily alarm's notification carries its first fire date).
+        // Ack this exact acknowledgment moment (a notification-tap ack carries
+        // the tap time, not the scheduled fire time).
         acked.insert(ackKey(ExpectedFire(id: alarm.id, title: alarm.title, notes: alarm.notes,
                                          kind: alarm.kind, fireISO: iso.string(from: alarm.firedAt))))
-        for fire in loadFires() where fire.id == alarm.id && fire.kind == alarm.kind {
+        // Ack every fire of this alarm that already passed, ANY kind — acking
+        // a snooze must count for the alarm it snoozed. A daily alarm's
+        // next-day fire is later than firedAt + 10 min, so it stays armed.
+        for fire in loadFires() where fire.id == alarm.id {
             if let d = fire.fireDate, d <= alarm.firedAt.addingTimeInterval(600) {
                 acked.insert(ackKey(fire))
+            }
+        }
+        // Calendar event (or a snooze of one): one ack covers the WHOLE event.
+        let isWebEvent = alarm.kind.hasPrefix("lead_") || alarm.kind == "day_before"
+            || alarm.kind == "one_hour"
+        let hasWebFires = loadFires().contains {
+            $0.id == alarm.id && ($0.kind.hasPrefix("lead_") || $0.kind == "day_before"
+                                  || $0.kind == "one_hour")
+        }
+        if isWebEvent || (alarm.kind == "snooze" && hasWebFires) {
+            for fire in loadFires() where fire.id == alarm.id {
+                acked.insert(ackKey(fire))
+            }
+            // Cancel every pending ring for this event, all lead times included.
+            center.getPendingNotificationRequests { requests in
+                let ids = requests.filter { $0.identifier.hasPrefix("aog_\(alarm.id)_") }
+                                  .map { $0.identifier }
+                self.center.removePendingNotificationRequests(withIdentifiers: ids)
             }
         }
         saveAcked(acked)
         // Stop the repeat chain — but never kill a daily alarm's repeating trigger.
         let isDailyManual = alarm.kind == "manual" && loadManual().contains(where: { $0.id == alarm.id && $0.daily })
-        if !isDailyManual {
+        if !isDailyManual && !isWebEvent {
             center.removePendingNotificationRequests(withIdentifiers:
                 ["aog_\(alarm.id)_\(alarm.kind)", "aog_\(alarm.id)_\(alarm.kind)_r1",
                  "aog_\(alarm.id)_\(alarm.kind)_r2"])
@@ -322,10 +351,25 @@ final class NotificationScheduler {
             }
         }
         // Web-app alarms report to the dashboard; manual/test alarms stay local.
-        if alarm.kind.hasPrefix("lead_") || alarm.kind == "day_before" || alarm.kind == "one_hour"
-            || alarm.kind == "snooze" {
+        if isWebEvent || (alarm.kind == "snooze" && hasWebFires) {
             AlarmSyncClient.shared.reportAck(eventId: alarm.id, title: alarm.title, kind: alarm.kind)
         }
+    }
+
+    /// True when this pending alarm already got its swipe — used to skip stale
+    /// queue entries so an acknowledged alarm can never ring twice.
+    func isAcknowledged(_ alarm: PendingAlarm) -> Bool {
+        let acked = loadAcked()
+        let exact = ackKey(ExpectedFire(id: alarm.id, title: alarm.title, notes: alarm.notes,
+                                        kind: alarm.kind, fireISO: iso.string(from: alarm.firedAt)))
+        if acked.contains(exact) { return true }
+        for fire in loadFires() where fire.id == alarm.id {
+            if let d = fire.fireDate, d <= alarm.firedAt.addingTimeInterval(600),
+               acked.contains(ackKey(fire)) {
+                return true
+            }
+        }
+        return false
     }
 
     // MARK: Ringtone + style selection
