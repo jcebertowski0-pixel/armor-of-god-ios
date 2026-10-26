@@ -79,6 +79,11 @@ final class AlarmAlertViewController: UIViewController {
         super.viewWillDisappear(animated)
         stopRingtone()
         stopVibration()
+        // Kill EVERY repeating timer so nothing fires after dismissal.
+        pulseTimer?.invalidate()
+        pulseTimer = nil
+        clockTimer?.invalidate()
+        clockTimer = nil
     }
 
     /// "lead_30" -> "STARTS IN 30 MINUTES" etc.
@@ -301,11 +306,17 @@ final class AlarmAlertViewController: UIViewController {
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         stopRingtone()
         stopVibration()
-        let callback = onAcknowledged
+        // Record the acknowledgment BEFORE the dismissal animation starts:
+        // all of this is main-thread UserDefaults/notification-center work and
+        // must never run inside a UIKit dismissal completion (crashes were
+        // reported right after the home page reappeared).
+        onAcknowledged(event)
         dismiss(animated: true) {
-            callback(self.event)
-            // Let the app show the next missed alarm, if any.
-            (UIApplication.shared.delegate as? AppDelegate)?.alarmScreenDidFinish()
+            // Let the app show the next missed alarm, if any — decoupled from
+            // the dismissal transition.
+            DispatchQueue.main.async {
+                (UIApplication.shared.delegate as? AppDelegate)?.alarmScreenDidFinish()
+            }
         }
     }
 
