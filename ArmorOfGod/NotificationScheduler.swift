@@ -333,7 +333,9 @@ final class NotificationScheduler {
             center.getPendingNotificationRequests { requests in
                 let ids = requests.filter { $0.identifier.hasPrefix("aog_\(alarm.id)_") }
                                   .map { $0.identifier }
-                self.center.removePendingNotificationRequests(withIdentifiers: ids)
+                DispatchQueue.main.async {
+                    self.center.removePendingNotificationRequests(withIdentifiers: ids)
+                }
             }
         }
         saveAcked(acked)
