@@ -5,6 +5,14 @@
 # Codemagic settings > Integrations > Developer Portal) authenticates with Apple,
 # and the distribution certificate private key comes from the encrypted
 # "code-signing" variable group. The App Store profile is created on the fly.
+#
+# NOTE on beta group assignment: Codemagic's built-in `beta_groups` magic action
+# races with Apple right when processing completes and fails with
+# "Cannot add internal group to a build" (happened on builds 39 and 43).
+# The post-publish script below waits for processing and assigns the build with
+# retries, so the group assignment is race-proof. The magic action is kept as a
+# first-chance attempt; if the script already assigned the build, a post-processing
+# "already assigned"-style failure afterwards is cosmetic and safe to ignore.
 workflows:
   armor-of-god-ios:
     name: Armor of God iOS
@@ -22,6 +30,17 @@ workflows:
       groups:
         - code-signing
     scripts:
+      - name: One-time fix - assign pending v1.4 build 43 to Jake's group
+        # Build 43 uploaded + processed fine on Oct 26 but the beta-group add
+        # hit the processing race. The build ID below is build 43's App Store
+        # Connect resource ID. Safe to re-run (a no-op if already assigned).
+        script: |
+          if app-store-connect beta-groups add-build 85d24871-a010-48dd-98db-d0a96efc287e \
+            --beta-group "Jake's group"; then
+            echo "v1.4 build 43 is now assigned to Jake's group"
+          else
+            echo "Build 43 group add failed (likely already assigned) - continuing"
+          fi
       - name: Fetch code signing files from App Store Connect
         script: |
           keychain initialize
@@ -33,6 +52,7 @@ workflows:
         script: |
           N=$(git rev-list --count HEAD)
           echo "Setting CURRENT_PROJECT_VERSION to $N"
+          echo "BUILD_NUM=$N" >> $CM_ENV
           perl -pi -e "s/CURRENT_PROJECT_VERSION = \d+/CURRENT_PROJECT_VERSION = $N/g" ArmorOfGod.xcodeproj/project.pbxproj
           grep CURRENT_PROJECT_VERSION ArmorOfGod.xcodeproj/project.pbxproj | head -2
       - name: Build the app
@@ -58,3 +78,35 @@ workflows:
         # which Apple rejected (missing feedback email/reviewer contact).
         beta_groups:
           - Jake's group
+      scripts:
+        - name: Make sure this build reaches Jake's TestFlight group
+          # Race-proof replacement for the magic action above: wait until Apple
+          # finishes processing, then add the build to the internal group with
+          # retries. Never fails the build - only prints a warning.
+          script: |
+            N=${BUILD_NUM:-$(git rev-list --count HEAD)}
+            echo "Waiting for App Store Connect to finish processing build number $N"
+            ID=""
+            for i in $(seq 1 30); do
+              J=$(app-store-connect builds list --build-version-number "$N" --json 2>/dev/null || echo "[]")
+              ID=$(echo "$J" | jq -r '(if type=="array" then .[0].id elif type=="object" and has("data") then .data[0].id else null end) // empty')
+              STATE=$(echo "$J" | jq -r '(if type=="array" then .[0].attributes.processingState elif type=="object" and has("data") then .data[0].attributes.processingState else null end) // empty')
+              echo "poll $i: id=${ID:-not found} state=${STATE:-unknown}"
+              if [ -n "$ID" ] && [ "$STATE" = "VALID" ]; then
+                break
+              fi
+              sleep 60
+            done
+            if [ -z "$ID" ]; then
+              echo "WARNING: build $N not found on App Store Connect within timeout - assign it manually in TestFlight"
+              exit 0
+            fi
+            for r in $(seq 1 8); do
+              if app-store-connect beta-groups add-build "$ID" --beta-group "Jake's group"; then
+                echo "SUCCESS: build $N assigned to Jake's group - it is live in TestFlight"
+                exit 0
+              fi
+              echo "add-build attempt $r failed, retrying in 60s"
+              sleep 60
+            done
+            echo "WARNING: could not assign build $N to Jake's group - assign it manually in TestFlight"
