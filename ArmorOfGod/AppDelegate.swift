@@ -89,7 +89,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
     func alarmScreenDidFinish() {
         alarmOnScreen = false
         currentAlarm = nil
-        presentNextAlarm()
+        // Decoupled from the dismissal completion so presenting the next
+        // alarm (if any) can never race UIKit's transition teardown.
+        DispatchQueue.main.async { self.presentNextAlarm() }
     }
 
     // MARK: UNUserNotificationCenterDelegate
