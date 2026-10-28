@@ -53,7 +53,9 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
     }
 
     @objc private func ackCompleted() {
-        reload()
+        // Refresh the dashboard from origin after an acknowledgement.
+        webView.reloadFromOrigin()
+        NotificationScheduler.shared.syncAndSchedule()
     }
 
     /// Small translucent floating button, top-right corner. Tapping it opens a
@@ -96,7 +98,15 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
     }
 
     private func reload() {
-        webView.load(URLRequest(url: siteURL))
+        // ALWAYS fetch the live site, never a cached copy. The web app is fixed and
+        // redeployed from Base44 several times a day; a WKWebView that honours the
+        // HTTP cache kept showing the OLD build after an app update, which looked
+        // exactly like "still broken after the update".
+        var request = URLRequest(url: siteURL,
+                                 cachePolicy: .reloadIgnoringLocalCacheData,
+                                 timeoutInterval: 30)
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        webView.load(request)
         NotificationScheduler.shared.syncAndSchedule()
     }
 }
