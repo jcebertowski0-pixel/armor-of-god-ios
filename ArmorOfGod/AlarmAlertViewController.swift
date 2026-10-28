@@ -73,6 +73,7 @@ final class AlarmAlertViewController: UIViewController {
         // In case we were opened from a dead state, kick a background sync so the
         // web app dashboard reflects the acknowledgment as soon as possible.
         NotificationScheduler.shared.syncAndSchedule()
+        AogDiag.log("ALARM SCREEN shown (style=\(style))")
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -301,23 +302,52 @@ final class AlarmAlertViewController: UIViewController {
         }
     }
 
+    private var didAcknowledge = false
+
     /// The ONLY exit path from this screen.
+    ///
+    /// Order matters and is deliberate. A crash here used to kill the app right
+    /// after the swipe, so:
+    ///  1. the swipe is latched (a second swipe can never re-enter),
+    ///  2. the noise stops FIRST — whatever happens next, the phone goes quiet,
+    ///  3. the acknowledgment is written to disk as plain state, before any
+    ///     UIKit work, so a crash cannot leave the alarm unacknowledged,
+    ///  4. only then do haptics + dismissal run, and the next alarm is queued up
+    ///     a beat later instead of inside UIKit's transition teardown.
     private func acknowledge() {
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        guard !didAcknowledge else { return }
+        didAcknowledge = true
+        UserDefaults.standard.set(true, forKey: "aog_ack_in_progress")
+        AogDiag.log("ACK 1: swipe latched (id=\(event.id) kind=\(event.kind))")
+
+        stopNoise()
+        AogDiag.log("ACK 2: audio + timers stopped")
+
+        onAcknowledged(event)
+        UserDefaults.standard.set(false, forKey: "aog_ack_in_progress")
+        AogDiag.log("ACK 3: state written")
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            // The screen is a window overlay, so leaving it is one synchronous
+            // view removal - no dismissal transition, nothing to crash in.
+            AogDiag.log("ACK 4: removing alarm screen")
+            (UIApplication.shared.delegate as? AppDelegate)?.removeAlarmScreen(self)
+            AogDiag.log("ACK 5: removed")
+        }
+    }
+
+    /// Silence + timer teardown, callable from anywhere. Used by the swipe AND
+    /// by the app delegate right before it tears the overlay down, so the phone
+    /// can never be left ringing by any exit path.
+    func stopNoise() {
         stopRingtone()
         stopVibration()
-        // Record the acknowledgment BEFORE the dismissal animation starts:
-        // all of this is main-thread UserDefaults/notification-center work and
-        // must never run inside a UIKit dismissal completion (crashes were
-        // reported right after the home page reappeared).
-        onAcknowledged(event)
-        dismiss(animated: true) {
-            // Let the app show the next missed alarm, if any — decoupled from
-            // the dismissal transition.
-            DispatchQueue.main.async {
-                (UIApplication.shared.delegate as? AppDelegate)?.alarmScreenDidFinish()
-            }
-        }
+        pulseTimer?.invalidate()
+        pulseTimer = nil
+        clockTimer?.invalidate()
+        clockTimer = nil
     }
 
     // MARK: Ringtone
@@ -336,7 +366,7 @@ final class AlarmAlertViewController: UIViewController {
                 player?.play()
             }
         } catch {
-            NSLog("Alarm ringtone failed: \(error)")
+            AogDiag.log("Ringtone failed: \(error)")
         }
     }
 
