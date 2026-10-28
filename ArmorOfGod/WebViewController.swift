@@ -88,6 +88,13 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         alert.addAction(UIAlertAction(title: "Reload Website", style: .default) { [weak self] _ in
             self?.reload()
         })
+        alert.addAction(UIAlertAction(title: "Diagnostics (alarm log)", style: .default) { [weak self] _ in
+            // Let the action sheet finish dismissing before presenting.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                let diag = UINavigationController(rootViewController: DiagnosticsViewController())
+                self?.present(diag, animated: true)
+            }
+        })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         // Anchor the action sheet to the FAB so it pops from the corner on iPad too.
         if let popover = alert.popoverPresentationController {
@@ -108,5 +115,53 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
         webView.load(request)
         NotificationScheduler.shared.syncAndSchedule()
+    }
+}
+
+
+/// Read-only view of the alarm/ack breadcrumb log: bell button ->
+/// "Diagnostics (alarm log)". Shows exactly which step the app died on.
+final class DiagnosticsViewController: UIViewController {
+
+    private let textView = UITextView()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        title = "Alarm diagnostics"
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done,
+                                                            target: self, action: #selector(close))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Copy", style: .plain,
+                                                           target: self, action: #selector(copyLog))
+
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        textView.isEditable = false
+        textView.alwaysBounceVertical = true
+        textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+        textView.text = AogDiag.tail(500)
+        view.addSubview(textView)
+        NSLayoutConstraint.activate([
+            textView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            textView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            textView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            textView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+        ])
+    }
+
+    @objc private func close() { dismiss(animated: true) }
+
+    @objc private func copyLog() {
+        UIPasteboard.general.string = textView.text
+        navigationItem.leftBarButtonItem?.title = "Copied"
+    }
+}
+
+
+/// Root navigation controller. Its only job: while the alarm overlay is on
+/// screen, the alarm owns the status bar so the clock face gets white text.
+final class RootNavController: UINavigationController {
+    weak var statusBarOwner: UIViewController?
+    override var childForStatusBarStyle: UIViewController? {
+        statusBarOwner ?? super.childForStatusBarStyle
     }
 }
