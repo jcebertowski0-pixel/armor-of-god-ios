@@ -305,6 +305,7 @@ final class NotificationScheduler {
     ///  - a daily alarm: today's fire only. Tomorrow still rings once — daily
     ///    alarms need exactly one acknowledgment each day.
     func markAcknowledged(_ alarm: PendingAlarm) {
+        AogDiag.log("MARK a: begin kind=\(alarm.kind)")
         var acked = loadAcked()
         // Ack this exact acknowledgment moment (a notification-tap ack carries
         // the tap time, not the scheduled fire time).
@@ -338,7 +339,9 @@ final class NotificationScheduler {
                 }
             }
         }
+        AogDiag.log("MARK b: ack keys = \(acked.count)")
         saveAcked(acked)
+        AogDiag.log("MARK c: saved")
         // Stop the repeat chain — but never kill a daily alarm's repeating trigger.
         let isDailyManual = alarm.kind == "manual" && loadManual().contains(where: { $0.id == alarm.id && $0.daily })
         if !isDailyManual && !isWebEvent {
@@ -346,6 +349,7 @@ final class NotificationScheduler {
                 ["aog_\(alarm.id)_\(alarm.kind)", "aog_\(alarm.id)_\(alarm.kind)_r1",
                  "aog_\(alarm.id)_\(alarm.kind)_r2"])
         }
+        AogDiag.log("MARK d: notifications cleaned")
         if alarm.kind == "manual" {
             // A one-time manual alarm is done after its one fire.
             if let m = loadManual().first(where: { $0.id == alarm.id }), !m.daily {
@@ -354,8 +358,10 @@ final class NotificationScheduler {
         }
         // Web-app alarms report to the dashboard; manual/test alarms stay local.
         if isWebEvent || (alarm.kind == "snooze" && hasWebFires) {
+            AogDiag.log("MARK e: reporting ack to web app")
             AlarmSyncClient.shared.reportAck(eventId: alarm.id, title: alarm.title, kind: alarm.kind)
         }
+        AogDiag.log("MARK f: done")
     }
 
     /// True when this pending alarm already got its swipe — used to skip stale
@@ -457,7 +463,9 @@ final class NotificationScheduler {
     }
 
     private func saveAcked(_ set: Set<String>) {
-        UserDefaults.standard.set(Array(set).suffix(200), forKey: ackKey)
+        // NOTE: Array(set).suffix(200) is an ArraySlice - store a real [String]
+        // so UserDefaults always round-trips a property list array.
+        UserDefaults.standard.set(Array(Array(set).suffix(200)), forKey: ackKey)
     }
 
     /// The selected ringtone as a notification sound.
