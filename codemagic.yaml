@@ -19,7 +19,11 @@ workflows:
     name: Armor of God iOS
     # Pushes do NOT trigger builds (no GitHub webhook is configured on the repo) -
     # Start new build must be clicked in the Codemagic dashboard.
-    max_build_duration: 20
+    # 45, not 20: the post-publish step WAITS for Apple to finish processing
+    # (up to 20 polls x 60s). At a 20 minute cap Codemagic killed the build while
+    # that wait was still running (build #51 "Build timeout"), which threw away
+    # the only proof the build reached internal testers.
+    max_build_duration: 45
     integrations:
       app_store_connect: Codemagic
     environment:
@@ -91,7 +95,7 @@ workflows:
             app-store-connect builds beta-details 85d24871-a010-48dd-98db-d0a96efc287e --json || true
             echo "=== Adding What's New test info for build $N ==="
             app-store-connect builds add-beta-test-info "$ID" --locale en-US \
-              --whats-new "v1.4: stability fix - acknowledging an alarm with a single swipe no longer crashes the app." || true
+              --whats-new "v1.5: the alarm screen is rebuilt so the swipe to acknowledge cannot crash - it is now a plain overlay with no transition to trip over. New: bell menu > Diagnostics shows the alarm log." || true
             echo "=== BuildBetaDetails for THIS build after test info ==="
             app-store-connect builds beta-details "$ID" --json || true
             echo "DIAGNOSTICS DONE - internalBuildState above is the source of truth"
