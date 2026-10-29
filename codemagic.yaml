@@ -38,9 +38,16 @@ workflows:
             --type IOS_APP_STORE --create
           keychain add-certificates
           xcode-project use-profiles --code-signing-setup-verbose-logging --custom-export-options='{"testFlightInternalTestingOnly": true}'
-      - name: Set build number (git commit count, always > TestFlight's last)
+      - name: Set build number (real git commit count, un-capped from shallow clones)
         script: |
+          # ROOT CAUSE (2026-10-29): Codemagic clones shallow, so
+          # `git rev-list --count HEAD` was CAPPED AT 50. Builds #50, #51 and the
+          # v1.5 build all got build number 50 - TestFlight saw a duplicate and
+          # the verification step looked up the wrong ASC record. Unshallow first
+          # so the count is the repo's real commit count.
+          git fetch --unshallow --tags 2>/dev/null || git fetch --tags 2>/dev/null || true
           N=$(git rev-list --count HEAD)
+          echo "Real commit count: $N (history: $(git rev-list --count HEAD), shallow: $(git rev-parse --is-shallow-repository))"
           echo "Setting CURRENT_PROJECT_VERSION to $N"
           echo "BUILD_NUM=$N" >> $CM_ENV
           perl -pi -e "s/CURRENT_PROJECT_VERSION = \d+/CURRENT_PROJECT_VERSION = $N/g" ArmorOfGod.xcodeproj/project.pbxproj
