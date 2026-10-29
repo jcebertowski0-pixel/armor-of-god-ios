@@ -34,6 +34,9 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         webView.scrollView.contentInsetAdjustmentBehavior = .never
 
         setupFab()
+        NotificationCenter.default.addObserver(self, selector: #selector(appBecameActive),
+                                              name: UIApplication.didBecomeActiveNotification,
+                                              object: nil)
         reload()
     }
 
@@ -114,6 +117,18 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         }
         present(alert, animated: true)
     }
+
+    /// The site is redeployed from Base44 several times a day. Reload it whenever
+    /// the app comes back to the foreground (max once every 30s) so a fresh
+    /// deploy shows up without a force-quit.
+    @objc private func appBecameActive() {
+        guard Date().timeIntervalSince(lastReloadAt) > 30 else { return }
+        lastReloadAt = Date()
+        webView.reloadFromOrigin()
+        NotificationScheduler.shared.syncAndSchedule()
+    }
+
+    private var lastReloadAt = Date()
 
     private func reload() {
         // ALWAYS fetch the live site, never a cached copy. The web app is fixed and
