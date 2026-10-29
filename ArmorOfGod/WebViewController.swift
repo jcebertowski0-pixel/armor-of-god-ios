@@ -65,10 +65,21 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         fabButton.translatesAutoresizingMaskIntoConstraints = false
         fabButton.setImage(UIImage(systemName: "bell.fill"), for: .normal)
         fabButton.tintColor = .white
-        fabButton.backgroundColor = UIColor(white: 0.09, alpha: 0.65)
+        // FULLY OPAQUE, on purpose. This button floats over the web app's own
+        // header, and a translucent circle let whatever is behind it (the site's
+        // own bell/notification control) show through as a smudge that looked
+        // like a rendering artifact. Solid fill + gold ring + a soft shadow so
+        // it reads as one deliberate control, not a ghost of two.
+        fabButton.backgroundColor = UIColor(red: 0.086, green: 0.094, blue: 0.114, alpha: 1.0)
         fabButton.layer.cornerRadius = 20
-        fabButton.layer.borderWidth = 0.5
-        fabButton.layer.borderColor = UIColor(white: 1.0, alpha: 0.25).cgColor
+        fabButton.layer.borderWidth = 1.0
+        fabButton.layer.borderColor = UIColor(red: 0.83, green: 0.69, blue: 0.29, alpha: 0.7).cgColor
+        fabButton.layer.shadowColor = UIColor.black.cgColor
+        fabButton.layer.shadowOpacity = 0.5
+        fabButton.layer.shadowRadius = 6
+        fabButton.layer.shadowOffset = CGSize(width: 0, height: 2)
+        fabButton.clipsToBounds = false
+        fabButton.layer.masksToBounds = false
         fabButton.accessibilityLabel = "Alarm menu"
         fabButton.addTarget(self, action: #selector(openMenu), for: .touchUpInside)
         view.addSubview(fabButton)
