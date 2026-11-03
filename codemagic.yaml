@@ -102,7 +102,7 @@ workflows:
             app-store-connect builds beta-details 85d24871-a010-48dd-98db-d0a96efc287e --json || true
             echo "=== Adding What's New test info for build $N ==="
             app-store-connect builds add-beta-test-info "$ID" --locale en-US \
-              --whats-new "Page content no longer slides under the top header: section titles and first cards on Heart, Chef, Lift and the More screens were being clipped. Home is unchanged." || true
+              --whats-new "Fixed the cut-off screen titles. The app's own top bar (avatar + bell) was painting over each screen's title bar on Heart, Chef, Lift, More and the other screens; that duplicate bar is now hidden so the title shows in full. Home is unchanged." || true
             echo "=== BuildBetaDetails for THIS build after test info ==="
             app-store-connect builds beta-details "$ID" --json || true
             echo "DIAGNOSTICS DONE - internalBuildState above is the source of truth"

@@ -142,32 +142,59 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         NotificationScheduler.shared.syncAndSchedule()
     }
 
-    /// Keeps page content from being clipped by the web app's fixed top header.
-    /// Runs inside the page; idempotent and self-removing (see viewDidLoad).
+    /// The web app draws TWO fixed bars on most screens: the shell's own header
+    /// (avatar + bell, z-55) and the page's title bar (PageHeader, z-56). Inside
+    /// WKWebView the page bar is trapped in the scroll container's stacking
+    /// context, so it paints BENEATH the shell header and its title gets cut in
+    /// half ("Spartan / Weightlifting" with the first line hidden behind the
+    /// avatar bar). Home has no page bar, which is why every other tab was hit.
+    ///
+    /// Fix: as soon as a screen supplies its own title bar, hide the shell header
+    /// so nothing can paint over the title. The shell header is position:fixed, so
+    /// hiding it reflows nothing; the page's own bar becomes the only bar, and the
+    /// web app's --spartan-header-h padding already keeps content clear of it.
+    /// Also neutralises the iOS scroll layer that traps fixed descendants, and
+    /// backs out cleanly on screens with no page bar (Home).
     private static let headerGuardScript = """
     (function(){
       if (window.__aogHeaderGuard) { return; }
       window.__aogHeaderGuard = true;
       var STYLE_ID = 'aog-header-guard';
-      function activeTab(){
-        var b = document.querySelector('nav[aria-label="Main sections"] button[aria-current="page"]');
-        return b ? b.textContent.trim() : '';
+      var FLAG = 'data-aog-pagebar';
+      var BAR_ATTR = 'data-aog-titlebar';
+      function injectStyle(){
+        if (document.getElementById(STYLE_ID)) { return; }
+        var el = document.createElement('style');
+        el.id = STYLE_ID;
+        el.textContent =
+          'html[' + FLAG + '] header.fixed:not([' + BAR_ATTR + ']){display:none !important;}' +
+          'div.overflow-y-auto{-webkit-overflow-scrolling:auto !important;}' +
+          '[' + BAR_ATTR + ']{z-index:9999 !important;}';
+        (document.head || document.documentElement).appendChild(el);
+      }
+      function scroller(){
+        return document.querySelector('header.fixed ~ div.overflow-y-auto');
+      }
+      function titleBar(sc){
+        var cands = sc.querySelectorAll('div.fixed.top-0');
+        for (var i = 0; i < cands.length; i++) {
+          var b = cands[i];
+          var r = b.getBoundingClientRect();
+          if (r.width > 100 && b.querySelector('h1')) { return b; }
+        }
+        return null;
       }
       function apply(){
         try {
-          var sc = document.querySelector('header.fixed ~ div.overflow-y-auto');
-          var el = document.getElementById(STYLE_ID);
-          if (!sc) { if (el) { el.remove(); } return; }
-          var pad = parseFloat(getComputedStyle(sc).paddingTop) || 0;
-          var tab = activeTab();
-          var need = pad < 40 && tab.length > 0 && tab !== 'Home';
-          if (need && !el) {
-            el = document.createElement('style');
-            el.id = STYLE_ID;
-            el.textContent = 'header.fixed{position:static !important;}';
-            (document.head || document.documentElement).appendChild(el);
-          } else if (!need && el) {
-            el.remove();
+          injectStyle();
+          var root = document.documentElement;
+          var sc = scroller();
+          var bar = sc ? titleBar(sc) : null;
+          if (bar) {
+            bar.setAttribute(BAR_ATTR, '1');
+            if (!root.hasAttribute(FLAG)) { root.setAttribute(FLAG, '1'); }
+          } else if (root.hasAttribute(FLAG)) {
+            root.removeAttribute(FLAG);
           }
         } catch (e) {}
       }
@@ -178,7 +205,7 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         new MutationObserver(apply).observe(document.documentElement,
           {childList: true, subtree: true, attributes: true, attributeFilter: ['aria-current']});
       } catch (e) {}
-      setInterval(apply, 1200);
+      setInterval(apply, 1000);
     })();
     """
 
