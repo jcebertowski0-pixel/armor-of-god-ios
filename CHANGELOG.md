@@ -3,6 +3,17 @@
 Build numbers come from the git commit count (`git rev-list --count HEAD`), so every
 shipped build needs a new commit before Codemagic runs.
 
+## v1.7 (build 58) - 2026-11-03
+- Fix: page content sliding under the web app's fixed top header. Every screen
+  except Home lost its first ~60px (the section title plus the top of the first
+  card) because the header is `position: fixed` and the web build being served
+  does not pad the scroll area for it. The shell now injects a small guard that
+  puts that header back in the layout flow whenever the page would otherwise be
+  clipped. It never touches Home, and it removes itself automatically once the
+  published web build offsets the content on its own (padding >= 40px), so it
+  cannot double up with a future web-side fix.
+- Marketing version 1.6 -> 1.7.
+
 ## v1.4 (build 46) - 2026-10-28
 - Re-release of v1.4 to TestFlight (internal testing) from current `main`.
 - Single-swipe alarm acknowledgement: pan gesture is attached to the whole slider

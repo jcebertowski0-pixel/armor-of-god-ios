@@ -16,7 +16,21 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         // Match the web app's dark background so any exposed edges blend in.
         view.backgroundColor = UIColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)
 
-        webView = WKWebView(frame: .zero)
+        // The web build positions its top header with `position: fixed`, which
+        // takes it out of the layout flow: on every page except Home the first
+        // ~60px of content slides underneath it and gets clipped (Home survives
+        // because its first block is a full-bleed hero). The permanent fix is a
+        // published web build that pads the scroll area, but this shell must stay
+        // correct no matter which bundle the site is serving, so inject a tiny
+        // guard that puts that header back into the flow while the page it is on
+        // would otherwise be clipped. It self-disables the moment the web app
+        // ships its own offset (padding >= 40px) and never touches Home.
+        let configuration = WKWebViewConfiguration()
+        configuration.userContentController.addUserScript(
+            WKUserScript(source: Self.headerGuardScript,
+                         injectionTime: .atDocumentEnd,
+                         forMainFrameOnly: true))
+        webView = WKWebView(frame: .zero, configuration: configuration)
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
         view.addSubview(webView)
@@ -127,6 +141,46 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         webView.reloadFromOrigin()
         NotificationScheduler.shared.syncAndSchedule()
     }
+
+    /// Keeps page content from being clipped by the web app's fixed top header.
+    /// Runs inside the page; idempotent and self-removing (see viewDidLoad).
+    private static let headerGuardScript = """
+    (function(){
+      if (window.__aogHeaderGuard) { return; }
+      window.__aogHeaderGuard = true;
+      var STYLE_ID = 'aog-header-guard';
+      function activeTab(){
+        var b = document.querySelector('nav[aria-label="Main sections"] button[aria-current="page"]');
+        return b ? b.textContent.trim() : '';
+      }
+      function apply(){
+        try {
+          var sc = document.querySelector('header.fixed ~ div.overflow-y-auto');
+          var el = document.getElementById(STYLE_ID);
+          if (!sc) { if (el) { el.remove(); } return; }
+          var pad = parseFloat(getComputedStyle(sc).paddingTop) || 0;
+          var tab = activeTab();
+          var need = pad < 40 && tab.length > 0 && tab !== 'Home';
+          if (need && !el) {
+            el = document.createElement('style');
+            el.id = STYLE_ID;
+            el.textContent = 'header.fixed{position:static !important;}';
+            (document.head || document.documentElement).appendChild(el);
+          } else if (!need && el) {
+            el.remove();
+          }
+        } catch (e) {}
+      }
+      apply();
+      document.addEventListener('DOMContentLoaded', apply);
+      window.addEventListener('load', apply);
+      try {
+        new MutationObserver(apply).observe(document.documentElement,
+          {childList: true, subtree: true, attributes: true, attributeFilter: ['aria-current']});
+      } catch (e) {}
+      setInterval(apply, 1200);
+    })();
+    """
 
     private var lastReloadAt = Date()
 
