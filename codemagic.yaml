@@ -102,7 +102,7 @@ workflows:
             app-store-connect builds beta-details 85d24871-a010-48dd-98db-d0a96efc287e --json || true
             echo "=== Adding What's New test info for build $N ==="
             app-store-connect builds add-beta-test-info "$ID" --locale en-US \
-              --whats-new "v1.5: the alarm screen is rebuilt so the swipe to acknowledge cannot crash - it is now a plain overlay with no transition to trip over. New: bell menu > Diagnostics shows the alarm log." || true
+              --whats-new "Page content no longer slides under the top header: section titles and first cards on Heart, Chef, Lift and the More screens were being clipped. Home is unchanged." || true
             echo "=== BuildBetaDetails for THIS build after test info ==="
             app-store-connect builds beta-details "$ID" --json || true
             echo "DIAGNOSTICS DONE - internalBuildState above is the source of truth"
