@@ -3,6 +3,24 @@
 Build numbers come from the git commit count (`git rev-list --count HEAD`), so every
 shipped build needs a new commit before Codemagic runs.
 
+## v1.9 (build 63) - 2026-11-04
+- Final TestFlight build of the voice release. No behaviour change from build 62:
+  this commit exists to advance the build number (TestFlight rejects a reused one)
+  and to record the shipping state below.
+- Confirmed live on build 62: `processingState` VALID and `internalBuildState`
+  IN_BETA_TESTING, so internal testers receive it automatically with no review.
+- Voice: tap the mic on Common Scriptures (Oracle) or Spartan Heart, speak instead of
+  typing, and hear the answer through earbuds via the on-device speech engine.
+- Siri shortcuts: routine, workout, daily reflection, upcoming alarms, next birthday,
+  log an expense, log income. Apple requires the app name inside third-party phrases,
+  so the wording is "Hey Siri, ask Armor of God what my workout is".
+- Desktop installers are invite only (owner account) until they have been tested.
+
+## v1.9 (build 62) - 2026-11-04
+- First shipped voice build. Siri shortcuts wired through App Intents; the free-form
+  "ask" shortcut collects the question with a spoken prompt because Siri phrases only
+  accept enum/entity parameters.
+
 ## v1.7 (build 58) - 2026-11-03
 - Fix: page content sliding under the web app's fixed top header. Every screen
   except Home lost its first ~60px (the section title plus the top of the first
