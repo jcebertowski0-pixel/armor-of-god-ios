@@ -162,8 +162,11 @@ struct LogIncomeIntent: AppIntent {
 
 struct ArmorOfGodShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
+        // Siri only accepts AppEnum/AppEntity values inside a phrase, so this one
+        // asks for the question out loud instead of trying to parse it inline
+        // ("What do you want to ask Armor of God?").
         AppShortcut(intent: AskArmorOfGodIntent(),
-                    phrases: ["Ask \(.applicationName) \(\.$question)"],
+                    phrases: ["Ask \(.applicationName) a question"],
                     shortTitle: "Ask Armor of God",
                     systemImageName: "shield.lefthalf.filled")
         AppShortcut(intent: RoutineIntent(),
