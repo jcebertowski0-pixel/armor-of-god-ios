@@ -30,7 +30,14 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
             WKUserScript(source: Self.headerGuardScript,
                          injectionTime: .atDocumentEnd,
                          forMainFrameOnly: true))
+        configuration.userContentController.addUserScript(
+            WKUserScript(source: Self.voiceBridgeScript,
+                         injectionTime: .atDocumentStart,
+                         forMainFrameOnly: true))
+        configuration.userContentController.add(VoiceBridge.shared, name: "aogVoice")
+
         webView = WKWebView(frame: .zero, configuration: configuration)
+        VoiceBridge.shared.attach(webView)
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
         view.addSubview(webView)
@@ -206,6 +213,58 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
           {childList: true, subtree: true, attributes: true, attributeFilter: ['aria-current']});
       } catch (e) {}
       setInterval(apply, 1000);
+    })();
+    """
+
+    /// Exposes the native voice layer to the web app as `window.AOGVoice`.
+    /// `listen()` resolves with a transcript, `speak(text)` reads a reply aloud,
+    /// `stop()`/`stopSpeaking()` cut either off. It also hands the page's Base44
+    /// access token to the shell so Siri shortcuts work while the app is closed.
+    private static let voiceBridgeScript = """
+    (function(){
+      var handlers = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.aogVoice;
+      if (!handlers) { return; }
+      function post(obj){ try { handlers.postMessage(obj); } catch(e){} }
+      var bridge = {
+        available: true,
+        onPartial: null,
+        onSpeakEnd: null,
+        _pending: null,
+        _native: function(m){
+          try {
+            if (m.type === 'partial') {
+              if (bridge.onPartial) { bridge.onPartial(m.text); }
+            } else if (m.type === 'final') {
+              var done = bridge._pending; bridge._pending = null;
+              if (done) { done.resolve(m.text); }
+            } else if (m.type === 'error') {
+              var failed = bridge._pending; bridge._pending = null;
+              if (failed) { failed.reject(new Error(m.message || 'voice error')); }
+            } else if (m.type === 'speakEnd') {
+              if (bridge.onSpeakEnd) { bridge.onSpeakEnd(); }
+            }
+          } catch(e){}
+        },
+        listen: function(){
+          return new Promise(function(resolve, reject){
+            bridge._pending = { resolve: resolve, reject: reject };
+            post({ action: 'listen' });
+          });
+        },
+        stop: function(){ post({ action: 'stop' }); },
+        speak: function(text){ if (text) { post({ action: 'speak', text: String(text) }); } },
+        stopSpeaking: function(){ post({ action: 'stopSpeaking' }); },
+        _pushToken: function(){
+          try {
+            var t = localStorage.getItem('base44_access_token') || localStorage.getItem('token');
+            if (t) { post({ action: 'token', token: t }); }
+          } catch(e){}
+        }
+      };
+      window.AOGVoice = bridge;
+      bridge._pushToken();
+      window.addEventListener('load', function(){ bridge._pushToken(); });
+      setInterval(function(){ bridge._pushToken(); }, 5000);
     })();
     """
 

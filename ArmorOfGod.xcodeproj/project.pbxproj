@@ -14,6 +14,8 @@
 		A0A000000000000000000005 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000005 /* NotificationScheduler.swift */; };
 		A0A000000000000000000006 /* AlarmSound.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000006 /* AlarmSound.wav */; };
 		A0A000000000000000000008 /* AlarmAlertViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000008 /* AlarmAlertViewController.swift */; };
+		A0A0000000000000000000E1 /* VoiceBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0000000000000000000E1 /* VoiceBridge.swift */; };
+		A0A0000000000000000000E2 /* VoiceIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0000000000000000000E2 /* VoiceIntents.swift */; };
 		A0A000000000000000000009 /* AlarmSiren.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000009 /* AlarmSiren.wav */; };
 		A0A000000000000000000010 /* AlarmBuzzer.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000012 /* AlarmBuzzer.wav */; };
 		A0A000000000000000000011 /* AlarmBell.wav in Resources */ = {isa = PBXBuildFile; fileRef = A0B000000000000000000011 /* AlarmBell.wav */; };
@@ -28,6 +30,8 @@
 		A0B000000000000000000005 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		A0B000000000000000000006 /* AlarmSound.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmSound.wav; sourceTree = "<group>"; };
 		A0B000000000000000000008 /* AlarmAlertViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmAlertViewController.swift; sourceTree = "<group>"; };
+		A0B0000000000000000000E1 /* VoiceBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceBridge.swift; sourceTree = "<group>"; };
+		A0B0000000000000000000E2 /* VoiceIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceIntents.swift; sourceTree = "<group>"; };
 		A0B000000000000000000009 /* AlarmSiren.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmSiren.wav; sourceTree = "<group>"; };
 		A0B000000000000000000012 /* AlarmBuzzer.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmBuzzer.wav; sourceTree = "<group>"; };
 		A0B000000000000000000011 /* AlarmBell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = AlarmBell.wav; sourceTree = "<group>"; };
@@ -53,6 +57,8 @@
 				A0B000000000000000000004 /* AlarmSyncClient.swift */,
 				A0B000000000000000000005 /* NotificationScheduler.swift */,
 				A0B000000000000000000008 /* AlarmAlertViewController.swift */,
+				A0B0000000000000000000E1 /* VoiceBridge.swift */,
+				A0B0000000000000000000E2 /* VoiceIntents.swift */,
 				A0B000000000000000000006 /* AlarmSound.wav */,
 				A0B000000000000000000009 /* AlarmSiren.wav */,
 				A0B000000000000000000012 /* AlarmBuzzer.wav */,
@@ -149,6 +155,8 @@
 				A0A000000000000000000004 /* AlarmSyncClient.swift in Sources */,
 				A0A000000000000000000005 /* NotificationScheduler.swift in Sources */,
 				A0A000000000000000000008 /* AlarmAlertViewController.swift in Sources */,
+				A0A0000000000000000000E1 /* VoiceBridge.swift in Sources */,
+				A0A0000000000000000000E2 /* VoiceIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -209,11 +217,13 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Armor of God";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Armor of God uses the microphone so you can talk to the Oracle and Spartan Heart instead of typing.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Armor of God turns your spoken question into text so it can answer you out loud.";
 				INFOPLIST_KEY_NSSupportsTimeSensitiveNotifications = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				MARKETING_VERSION = 1.8;
+				MARKETING_VERSION = 1.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.freebirdapps.armorofgod;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -232,11 +242,13 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Armor of God";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Armor of God uses the microphone so you can talk to the Oracle and Spartan Heart instead of typing.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Armor of God turns your spoken question into text so it can answer you out loud.";
 				INFOPLIST_KEY_NSSupportsTimeSensitiveNotifications = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				MARKETING_VERSION = 1.8;
+				MARKETING_VERSION = 1.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.freebirdapps.armorofgod;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				PRODUCT_NAME = "$(TARGET_NAME)";
