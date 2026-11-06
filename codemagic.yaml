@@ -102,7 +102,7 @@ workflows:
             app-store-connect builds beta-details 85d24871-a010-48dd-98db-d0a96efc287e --json || true
             echo "=== Adding What's New test info for build $N ==="
             app-store-connect builds add-beta-test-info "$ID" --locale en-US \
-              --whats-new "Timer everywhere: a duration/lift/rest timer (30/3/2 min defaults) that stays visible, with voice cues and a blue rest phase. Lift now shows sets, reps and weight with previous week history and Lifting Progress. Chef guides you step by step with ingredient quantities, a prep checklist and minute/second timers. Birthdays list the month and day, with an optional birth year. Daily Acknowledgment includes upcoming events and birthdays."" || true
+              --whats-new "Timer everywhere: a duration/lift/rest timer (30/3/2 min defaults) that stays visible, with voice cues and a blue rest phase. Lift now shows sets, reps and weight with previous week history and Lifting Progress. Chef guides you step by step with ingredient quantities, a prep checklist and minute/second timers. Birthdays list the month and day, with an optional birth year. Daily Acknowledgment includes upcoming events and birthdays." || true
             echo "=== BuildBetaDetails for THIS build after test info ==="
             app-store-connect builds beta-details "$ID" --json || true
             echo "DIAGNOSTICS DONE - internalBuildState above is the source of truth"
