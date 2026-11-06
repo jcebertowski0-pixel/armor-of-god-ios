@@ -49,3 +49,7 @@ shipped build needs a new commit before Codemagic runs.
 - Slider fix verified end-to-end; `beta_groups` removed because Apple permanently
   rejects assigning internal TestFlight groups (internal testers get builds
   automatically).
+
+## v2.0 - 2026-11-06
+- Shell builds on the live web release (always-visible duration/lift/rest timer with voice cues and blue rest phase; sets/reps/weight with last-week history and Lifting Progress; guided Chef with quantity validation, prep checklist and custom timers; birthday month/day list with optional birth year; upcoming events/birthdays in Daily Acknowledgment).
+- No WebView/native behaviour changes; the wrapper loads https://divine-armor-path.base44.app live.
