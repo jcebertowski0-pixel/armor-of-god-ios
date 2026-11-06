@@ -140,16 +140,23 @@ workflows:
       - name: App Store state diagnostics
         script: |
           APP=6821792871
-          echo "=== apps app-store-versions usage ==="
-          app-store-connect apps app-store-versions --help 2>&1 | sed -n '1,60p' || true
-          echo "=== app record ==="
-          app-store-connect apps list --bundle-id com.freebirdapps.armorofgod --json 2>&1 | sed -n '1,80p' || true
-          echo "=== app store versions ==="
-          app-store-connect apps app-store-versions --app "$APP" --json 2>&1 | sed -n '1,200p' || true
-          echo "=== pre-release versions ==="
-          app-store-connect apps pre-release-versions --app "$APP" --json 2>&1 | sed -n '1,80p' || true
-          echo "=== review subcommands usage ==="
-          app-store-connect review-submissions --help 2>&1 | sed -n '1,40p' || true
-          app-store-connect app-store-versions localizations --help 2>&1 | sed -n '1,40p' || true
-          app-store-connect app-store-versions get --help 2>&1 | sed -n '1,40p' || true
+          JQ='if type=="array" then .[0] else .data[0] end'
+          echo "=== 2.0 versions ==="
+          VJ=$(app-store-connect apps app-store-versions "$APP" --version-string 2.0 --platform IOS --json 2>&1)
+          echo "$VJ" | sed -n '1,160p'
+          V2=$(echo "$VJ" | jq -r "$JQ" 2>/dev/null) || V2=""
+          VID=$(echo "$V2" | jq -r '.id // empty' 2>/dev/null) || VID=""
+          echo "VERSION_ID=$VID"
+          if [ -n "$VID" ]; then
+            echo "=== version 2.0 detail ==="
+            app-store-connect app-store-versions get --version-id "$VID" --json 2>&1 | sed -n '1,200p' || true
+            echo "=== localizations ==="
+            app-store-connect app-store-version-localizations list --app-store-version "$VID" --json 2>&1 | sed -n '1,200p' || true
+          fi
+          echo "=== 'get' usage ==="
+          app-store-connect app-store-versions get --help 2>&1 | sed -n '1,60p' || true
+          echo "=== submission create usage ==="
+          app-store-connect app-store-version-submissions create --help 2>&1 | sed -n '1,80p' || true
+          echo "=== review-submissions usage ==="
+          app-store-connect review-submissions --help 2>&1 | sed -n '1,50p' || true
           echo "=== END DIAGNOSTICS ==="
