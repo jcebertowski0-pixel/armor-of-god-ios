@@ -37,7 +37,12 @@ workflows:
           app-store-connect fetch-signing-files com.freebirdapps.armorofgod \
             --type IOS_APP_STORE --create
           keychain add-certificates
-          xcode-project use-profiles --code-signing-setup-verbose-logging --custom-export-options='{"testFlightInternalTestingOnly": true}'
+          # Export as a normal App Store build. The previous
+          # --custom-export-options='{"testFlightInternalTestingOnly": true}'
+          # flag made every uploaded build buildAudienceType INTERNAL_ONLY, which
+          # is why App Store Connect disabled them all in the version's Build
+          # section. Default export method for build-ipa is app-store.
+          xcode-project use-profiles --code-signing-setup-verbose-logging
       - name: Set build number (real git commit count, un-capped from shallow clones)
         script: |
           # ROOT CAUSE (2026-10-29): Codemagic clones shallow, so
@@ -106,3 +111,16 @@ workflows:
             echo "=== BuildBetaDetails for THIS build after test info ==="
             app-store-connect builds beta-details "$ID" --json || true
             echo "DIAGNOSTICS DONE - internalBuildState above is the source of truth"
+            echo
+            echo "=== APP STORE READINESS DIAGNOSTICS (read-only, never fails) ==="
+            echo "--- app-store-connect CLI surface ---"
+            app-store-connect --help 2>&1 | sed -n '1,90p' || true
+            echo "--- apps subcommands ---"
+            app-store-connect apps --help 2>&1 | sed -n '1,60p' || true
+            echo "--- app-store-versions subcommands ---"
+            app-store-connect app-store-versions --help 2>&1 | sed -n '1,90p' || true
+            echo "--- app-store-version-submissions subcommands ---"
+            app-store-connect app-store-version-submissions --help 2>&1 | sed -n '1,90p' || true
+            echo "--- app store versions for app 6821792871 ---"
+            app-store-connect app-store-versions list --app 6821792871 --json 2>&1 | sed -n '1,220p' || true
+            echo "=== END APP STORE READINESS DIAGNOSTICS ==="
