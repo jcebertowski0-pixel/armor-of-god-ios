@@ -131,32 +131,30 @@ workflows:
   # agreements, or credentials - read and submit only.
   aog-asc-tools:
     name: AOG App Store Connect tools
-    max_build_duration: 20
+    max_build_duration: 25
     integrations:
       app_store_connect: Codemagic
     environment:
       xcode: latest
     scripts:
-      - name: App Store state diagnostics
+      - name: Attach build 67, report metadata, attempt submission
         script: |
           APP=6821792871
-          JQ='if type=="array" then .[0] else .data[0] end'
-          echo "=== 2.0 versions ==="
-          VJ=$(app-store-connect apps app-store-versions "$APP" --version-string 2.0 --platform IOS --json 2>&1)
-          echo "$VJ" | sed -n '1,160p'
-          V2=$(echo "$VJ" | jq -r "$JQ" 2>/dev/null) || V2=""
-          VID=$(echo "$V2" | jq -r '.id // empty' 2>/dev/null) || VID=""
-          echo "VERSION_ID=$VID"
-          if [ -n "$VID" ]; then
-            echo "=== version 2.0 detail ==="
-            app-store-connect app-store-versions get --version-id "$VID" --json 2>&1 | sed -n '1,200p' || true
-            echo "=== localizations ==="
-            app-store-connect app-store-version-localizations list --app-store-version "$VID" --json 2>&1 | sed -n '1,200p' || true
-          fi
-          echo "=== 'get' usage ==="
-          app-store-connect app-store-versions get --help 2>&1 | sed -n '1,60p' || true
-          echo "=== submission create usage ==="
-          app-store-connect app-store-version-submissions create --help 2>&1 | sed -n '1,80p' || true
-          echo "=== review-submissions usage ==="
-          app-store-connect review-submissions --help 2>&1 | sed -n '1,50p' || true
-          echo "=== END DIAGNOSTICS ==="
+          VID=7f03af6f-588e-4c73-b6e1-edc337727f4c
+          BID=09c24b83-9112-4c3d-9bf0-b81b008f9b86
+          echo "=== 1. attach App Store build 67 to the 2.0 version ==="
+          app-store-connect app-store-versions modify "$VID" --build-id "$BID" --json 2>&1 | sed -n '1,60p' || true
+          echo "=== 2. version state after attach ==="
+          app-store-connect app-store-versions get "$VID" --json 2>&1 | sed -n '1,80p' || true
+          echo "=== 3. localization metadata currently on the version ==="
+          app-store-connect app-store-versions localizations "$VID" --json 2>&1 | sed -n '1,200p' || true
+          echo "=== 4. attempt App Review submission (real, may be refused by Apple) ==="
+          set +e
+          app-store-connect app-store-version-submissions create "$VID" --json > /tmp/sub.out 2>&1
+          echo "EXIT_CODE=$?"
+          cat /tmp/sub.out
+          echo "=== 5. version state after submission attempt ==="
+          app-store-connect app-store-versions get "$VID" --json 2>&1 | sed -n '1,80p' || true
+          echo "=== 6. review submissions on the app ==="
+          app-store-connect apps list-review-submissions "$APP" --json 2>&1 | sed -n '1,120p' || true
+          echo "=== END ==="
