@@ -124,3 +124,32 @@ workflows:
             echo "--- app store versions for app 6821792871 ---"
             app-store-connect app-store-versions list --app 6821792871 --json 2>&1 | sed -n '1,220p' || true
             echo "=== END APP STORE READINESS DIAGNOSTICS ==="
+
+  # Script-only workflow: App Store Connect admin queries and the review
+  # submission itself, using the same "Codemagic" API key. No Xcode build, so it
+  # costs a couple of minutes instead of a full build. Never touches billing,
+  # agreements, or credentials - read and submit only.
+  aog-asc-tools:
+    name: AOG App Store Connect tools
+    max_build_duration: 20
+    integrations:
+      app_store_connect: Codemagic
+    environment:
+      xcode: latest
+    scripts:
+      - name: App Store state diagnostics
+        script: |
+          APP=6821792871
+          echo "=== apps app-store-versions usage ==="
+          app-store-connect apps app-store-versions --help 2>&1 | sed -n '1,60p' || true
+          echo "=== app record ==="
+          app-store-connect apps list --bundle-id com.freebirdapps.armorofgod --json 2>&1 | sed -n '1,80p' || true
+          echo "=== app store versions ==="
+          app-store-connect apps app-store-versions --app "$APP" --json 2>&1 | sed -n '1,200p' || true
+          echo "=== pre-release versions ==="
+          app-store-connect apps pre-release-versions --app "$APP" --json 2>&1 | sed -n '1,80p' || true
+          echo "=== review subcommands usage ==="
+          app-store-connect review-submissions --help 2>&1 | sed -n '1,40p' || true
+          app-store-connect app-store-versions localizations --help 2>&1 | sed -n '1,40p' || true
+          app-store-connect app-store-versions get --help 2>&1 | sed -n '1,40p' || true
+          echo "=== END DIAGNOSTICS ==="
