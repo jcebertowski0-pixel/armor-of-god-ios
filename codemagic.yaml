@@ -137,27 +137,9 @@ workflows:
     environment:
       xcode: latest
     scripts:
-      - name: Submit 2.0 for App Review
+      - name: App Store Connect API harness
         script: |
           set +e
-          APP=6821792871
-          VID=7f03af6f-588e-4c73-b6e1-edc337727f4c
-          echo "=== review-submissions create (raw) ==="
-          app-store-connect review-submissions create "$APP" --platform IOS --json > /tmp/rs.out 2>&1
-          echo "EXIT=$?"
-          cat /tmp/rs.out
-          SID=$(grep -o '[0-9a-f-]\{36\}' /tmp/rs.out | head -1)
-          echo "SID=$SID"
-          if [ -n "$SID" ]; then
-            echo "=== add version item ==="
-            app-store-connect review-submission-items create "$SID" --version-id "$VID" --json 2>&1 | tail -10
-            echo "=== confirm ==="
-            app-store-connect review-submissions confirm "$SID" --json > /tmp/c.out 2>&1
-            echo "CONFIRM_EXIT=$?"
-            cat /tmp/c.out
-            echo "=== items ==="
-            app-store-connect review-submissions items "$SID" --json 2>&1 | tail -10
-          fi
-          echo "=== final version state ==="
-          app-store-connect -s app-store-versions get "$VID" --json 2>&1 | grep -E '"app(Store|Version)State"'
+          python3 -m pip install --quiet pyjwt 2>&1 | tail -1
+          python3 appstore/asc_api.py discover
           echo "=== END ==="
