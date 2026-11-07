@@ -351,9 +351,24 @@ def probe_privacy():
         print("    " + body[:400].replace("\n", " "), flush=True)
 
 
+def fix_age():
+    """Correct the two age-rating answers now that Spartan RoundTable is confirmed
+    to be a user message board (postRoundTableMessage, content/message_type/prayers)."""
+    status, payload = req("GET", f"/v1/appInfos/{APP_INFO_ID}/ageRatingDeclaration")
+    decl_id = payload["data"]["id"]
+    attrs = dict(AGE_RATING)
+    attrs["userGeneratedContent"] = True
+    attrs["messagingAndChat"] = True
+    status, payload = req("PATCH", f"/v1/ageRatingDeclarations/{decl_id}",
+                          {"data": {"type": "ageRatingDeclarations", "id": decl_id,
+                                    "attributes": attrs}})
+    print(f"age rating PATCH -> {status}")
+    print(json.dumps(payload)[:900] if isinstance(payload, dict) else payload[:600])
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "discover"
-    {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify, "review_detail": review_detail, "probe_privacy": probe_privacy}[mode]()
+    {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify, "review_detail": review_detail, "probe_privacy": probe_privacy, "fix_age": fix_age}[mode]()
     if mode == "discover":
         for label, path in [
             ("app", f"/v1/apps/{APP_ID}"),
