@@ -220,9 +220,71 @@ def setup():
     screenshots()
 
 
+AGE_RATING = {
+    "advertising": False,
+    "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+    "contests": "NONE",
+    "gambling": False,
+    "gamblingSimulated": "NONE",
+    "gunsOrOtherWeapons": "NONE",
+    "healthOrWellnessTopics": True,
+    "lootBox": False,
+    "medicalOrTreatmentInformation": "NONE",
+    "messagingAndChat": False,
+    "parentalControls": False,
+    "profanityOrCrudeHumor": "NONE",
+    "ageAssurance": False,
+    "sexualContentGraphicAndNudity": "NONE",
+    "sexualContentOrNudity": "NONE",
+    "socialMedia": False,
+    "socialMediaAgeRestricted": False,
+    "horrorOrFearThemes": "NONE",
+    "matureOrSuggestiveThemes": "NONE",
+    "unrestrictedWebAccess": False,
+    "userGeneratedContent": False,
+    "violenceCartoonOrFantasy": "NONE",
+    "violenceRealistic": "NONE",
+    "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+}
+
+
+def age_rating_full():
+    status, payload = req("GET", f"/v1/appInfos/{APP_INFO_ID}/ageRatingDeclaration")
+    if status >= 300 or not payload.get("data"):
+        print("no declaration", status, payload)
+        return
+    decl_id = payload["data"]["id"]
+    status, payload = req("PATCH", f"/v1/ageRatingDeclarations/{decl_id}",
+                          {"data": {"type": "ageRatingDeclarations", "id": decl_id,
+                                    "attributes": AGE_RATING}})
+    print(f"age rating PATCH -> {status}")
+    print(json.dumps(payload)[:1500])
+
+
+def finish():
+    age_rating_full()
+    status, payload = req("GET", f"/v1/apps/{APP_ID}/reviewSubmissions?limit=20")
+    for sub in (payload.get("data", []) if isinstance(payload, dict) else []):
+        if sub["attributes"].get("state") in ("READY_FOR_REVIEW", "WAITING_FOR_REVIEW"):
+            call("cancel old submission", "DELETE", f"/v1/reviewSubmissions/{sub['id']}", quiet=True)
+    status, payload = call("new submission", "POST", "/v1/reviewSubmissions", {
+        "data": {"type": "reviewSubmissions", "attributes": {"platform": "IOS"},
+                 "relationships": {"app": {"data": {"type": "apps", "id": APP_ID}}}}})
+    if status >= 300:
+        return
+    sid = payload["data"]["id"]
+    call("add 2.0 item", "POST", "/v1/reviewSubmissionItems", {
+        "data": {"type": "reviewSubmissionItems",
+                 "relationships": {
+                     "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sid}},
+                     "appStoreVersion": {"data": {"type": "appStoreVersions", "id": VERSION_ID}}}}})
+    call("submit", "PATCH", f"/v1/reviewSubmissions/{sid}", {
+        "data": {"type": "reviewSubmissions", "id": sid, "attributes": {"submitted": True}}})
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "discover"
-    {"discover": lambda: None, "setup": setup}[mode]()
+    {"discover": lambda: None, "setup": setup, "finish": finish}[mode]()
     if mode == "discover":
         for label, path in [
             ("app", f"/v1/apps/{APP_ID}"),
