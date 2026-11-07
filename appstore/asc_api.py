@@ -282,9 +282,37 @@ def finish():
         "data": {"type": "reviewSubmissions", "id": sid, "attributes": {"submitted": True}}})
 
 
+def verify():
+    """Read-only: confirm screenshots, privacy URL, review detail, and the exact
+    validation errors that still block a review submission."""
+    status, payload = req("GET", f"/v1/appStoreVersionLocalizations/{LOCALIZATION_ID}/appScreenshotSets")
+    sets = payload.get("data", []) if isinstance(payload, dict) else []
+    print(f"screenshot sets: {len(sets)}")
+    for st in sets:
+        print(f"  set {st['id']} type={st['attributes']['screenshotDisplayType']}")
+        s2, p2 = req("GET", f"/v1/appScreenshotSets/{st['id']}/appScreenshots")
+        for shot in (p2.get("data", []) if isinstance(p2, dict) else []):
+            a = shot["attributes"]
+            state = a.get("assetDeliveryState") or {}
+            print(f"    {a['fileName']} {a['fileSize']}B state={state.get('state')} errors={state.get('errors')}")
+    s3, p3 = req("GET", f"/v1/appInfos/{APP_INFO_ID}/appInfoLocalizations")
+    for loc in (p3.get("data", []) if isinstance(p3, dict) else []):
+        print(f"appInfoLocalization {loc['attributes']['locale']} privacyPolicyUrl={loc['attributes'].get('privacyPolicyUrl')}")
+    s4, p4 = req("GET", f"/v1/appStoreVersions/{VERSION_ID}/appStoreReviewDetail")
+    print(f"review detail: {json.dumps(p4)[:300]}")
+    sid = "a77fbd46-0437-4b5f-93fa-7e67731cf99e"
+    s5, p5 = req("POST", "/v1/reviewSubmissionItems", {
+        "data": {"type": "reviewSubmissionItems",
+                 "relationships": {
+                     "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sid}},
+                     "appStoreVersion": {"data": {"type": "appStoreVersions", "id": VERSION_ID}}}}})
+    print(f"add version to submission -> {s5}")
+    print(json.dumps(p5, indent=1)[:3000] if isinstance(p5, dict) else p5[:2000])
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "discover"
-    {"discover": lambda: None, "setup": setup, "finish": finish}[mode]()
+    {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify}[mode]()
     if mode == "discover":
         for label, path in [
             ("app", f"/v1/apps/{APP_ID}"),
