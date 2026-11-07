@@ -310,9 +310,32 @@ def verify():
     print(json.dumps(p5, indent=1)[:3000] if isinstance(p5, dict) else p5[:2000])
 
 
+def review_detail():
+    """Create the App Review contact record, then re-check submission validation."""
+    body = {"data": {"type": "appStoreReviewDetails",
+                     "attributes": {"contactFirstName": "Jacob",
+                                    "contactLastName": "Ebertowski",
+                                    "contactPhone": "+17015186261",
+                                    "contactEmail": "jcebertowski0@gmail.com",
+                                    "demoAccountRequired": True},
+                     "relationships": {"appStoreVersion": {
+                         "data": {"type": "appStoreVersions", "id": VERSION_ID}}}}}
+    status, payload = req("POST", "/v1/appStoreReviewDetails", body)
+    print(f"create review detail -> {status}")
+    print(json.dumps(payload, indent=1)[:2000] if isinstance(payload, dict) else payload[:1500])
+    sid = "a77fbd46-0437-4b5f-93fa-7e67731cf99e"
+    s2, p2 = req("POST", "/v1/reviewSubmissionItems", {
+        "data": {"type": "reviewSubmissionItems",
+                 "relationships": {
+                     "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sid}},
+                     "appStoreVersion": {"data": {"type": "appStoreVersions", "id": VERSION_ID}}}}})
+    print(f"add version to submission -> {s2}")
+    print(json.dumps(p2, indent=1)[:2500] if isinstance(p2, dict) else p2[:1500])
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "discover"
-    {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify}[mode]()
+    {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify, "review_detail": review_detail}[mode]()
     if mode == "discover":
         for label, path in [
             ("app", f"/v1/apps/{APP_ID}"),
