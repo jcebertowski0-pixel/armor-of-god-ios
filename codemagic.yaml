@@ -141,5 +141,5 @@ workflows:
         script: |
           set +e
           python3 -m pip install --quiet pyjwt 2>&1 | tail -1
-          python3 appstore/asc_api.py discover
+          python3 appstore/asc_api.py setup
           echo "=== END ==="
