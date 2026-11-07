@@ -333,9 +333,27 @@ def review_detail():
     print(json.dumps(p2, indent=1)[:2500] if isinstance(p2, dict) else p2[:1500])
 
 
+def probe_privacy():
+    """Find out whether Apple exposes the App Privacy (data usage) answers via API."""
+    candidates = [
+        "/v1/appDataUsages",
+        "/v1/appDataUsageCategories",
+        f"/v1/appInfos/{APP_INFO_ID}/appDataUsages",
+        f"/v1/apps/{APP_ID}/appDataUsagePublishments",
+        "/v1/appDataUsagePublishments",
+        f"/v1/apps/{APP_ID}/appEncryptionDeclarations",
+        "/v1/appDataUsages?filter%5Bapp%5D=6821792871",
+    ]
+    for path in candidates:
+        status, payload = req("GET", path)
+        body = payload if isinstance(payload, str) else json.dumps(payload)
+        print(f"[{status}] GET {path}")
+        print("    " + body[:400].replace("\n", " "), flush=True)
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "discover"
-    {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify, "review_detail": review_detail}[mode]()
+    {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify, "review_detail": review_detail, "probe_privacy": probe_privacy}[mode]()
     if mode == "discover":
         for label, path in [
             ("app", f"/v1/apps/{APP_ID}"),
