@@ -137,24 +137,34 @@ workflows:
     environment:
       xcode: latest
     scripts:
-      - name: Attach build 67, report metadata, attempt submission
+      - name: Set listing copy and submit for review
         script: |
+          set +e
           APP=6821792871
           VID=7f03af6f-588e-4c73-b6e1-edc337727f4c
-          BID=09c24b83-9112-4c3d-9bf0-b81b008f9b86
-          echo "=== 1. attach App Store build 67 to the 2.0 version ==="
-          app-store-connect app-store-versions modify "$VID" --build-id "$BID" --json 2>&1 | sed -n '1,60p' || true
-          echo "=== 2. version state after attach ==="
-          app-store-connect app-store-versions get "$VID" --json 2>&1 | sed -n '1,80p' || true
-          echo "=== 3. localization metadata currently on the version ==="
-          app-store-connect app-store-versions localizations "$VID" --json 2>&1 | sed -n '1,200p' || true
-          echo "=== 4. attempt App Review submission (real, may be refused by Apple) ==="
-          set +e
-          app-store-connect app-store-version-submissions create "$VID" --json > /tmp/sub.out 2>&1
-          echo "EXIT_CODE=$?"
-          cat /tmp/sub.out
-          echo "=== 5. version state after submission attempt ==="
-          app-store-connect app-store-versions get "$VID" --json 2>&1 | sed -n '1,80p' || true
-          echo "=== 6. review submissions on the app ==="
-          app-store-connect apps list-review-submissions "$APP" --json 2>&1 | sed -n '1,120p' || true
+          LOC=03f3de21-af33-4448-909f-b3dc5563cc4f
+          DESC="Armor of God is a Spartan-inspired training ground for your faith: a place to build physical discipline, spiritual resilience, and consistent daily habits. WHAT IS INSIDE - Oracle: ask a question and hear the answer spoken back to you. - Spartan Heart: daily reflections, acknowledgments, and scripture. - Spartan Chef: step-by-step cooking with quantities, a prep checklist and minute/second timers. - Lift: log sets, reps and weight, then review your history and lifting progress. - Routine, Strategy and Budget: keep your day, your plans and your money in order. - Calendar planner with alarms that get your attention: a reminder the day before and an hour before, full screen, with a swipe to acknowledge. - Voice: talk to the Oracle and Spartan Heart, plus Siri shortcuts such as asking Armor of God what your workout is. - Daily Acknowledgment that includes upcoming events and birthdays. Your armor is built one day at a time."
+          KW="faith,devotion,scripture,prayer,spartan,workout,habits,discipline,daily,christian"
+          PROMO="Timers everywhere, lift history with previous week numbers, a step-by-step Chef, and birthdays on your daily acknowledgment."
+          echo "=== modify usage ==="
+          app-store-connect app-store-version-localizations modify --help 2>&1 | sed -n '1,40p'
+          echo "=== write listing copy ==="
+          app-store-connect app-store-version-localizations modify "$LOC" --description "$DESC" --keywords "$KW" --support-url https://divine-armor-path.base44.app/AppInfo --marketing-url https://divine-armor-path.base44.app --promotional-text "$PROMO" --json 2>&1 | sed -n '1,40p'
+          echo "=== read back ==="
+          app-store-connect -s app-store-versions localizations "$VID" --json 2>&1 | grep -E '"(description|keywords|supportUrl|marketingUrl|promotionalText)"' | head -6
+          echo "=== create review submission ==="
+          SID=$(app-store-connect -s review-submissions create "$APP" --platform IOS --json 2>&1 | jq -r '.[0].id // .data[0].id // empty')
+          echo "SUBMISSION=$SID"
+          if [ -n "$SID" ]; then
+            echo "=== add version item ==="
+            app-store-connect review-submission-items create "$SID" --version-id "$VID" --json 2>&1 | tail -6
+            echo "=== confirm (submit to App Review) ==="
+            app-store-connect review-submissions confirm "$SID" --json > /tmp/confirm.out 2>&1
+            echo "CONFIRM_EXIT=$?"
+            cat /tmp/confirm.out
+            echo "=== submission items ==="
+            app-store-connect review-submissions items "$SID" --json 2>&1 | tail -8
+          fi
+          echo "=== final version state ==="
+          app-store-connect -s app-store-versions get "$VID" --json 2>&1 | grep -E '"app(Store|Version)State"|"releaseType"'
           echo "=== END ==="
