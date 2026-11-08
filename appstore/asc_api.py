@@ -23,6 +23,9 @@ APP_ID = "6821792871"
 VERSION_ID = "7f03af6f-588e-4c73-b6e1-edc337727f4c"
 LOCALIZATION_ID = "03f3de21-af33-4448-909f-b3dc5563cc4f"
 APP_INFO_ID = "15bd421e-a6dc-4fad-ac2a-e56d038f6f31"
+REVIEW_DETAIL_ID = "263cfdd4-5705-4efe-bb10-dabba46679eb"
+DEMO_EMAIL = "jcebertowski0+aogreview@gmail.com"
+DEMO_PASSWORD = "ArmorReview2026!"
 BASE = "https://api.appstoreconnect.apple.com"
 SHOTS = [
     "appstore/screenshots/01-dashboard.jpg",
@@ -366,9 +369,34 @@ def fix_age():
     print(json.dumps(payload)[:900] if isinstance(payload, dict) else payload[:600])
 
 
+def submit_demo():
+    """Fill the dedicated review login, then submit version 2.0 for review."""
+    body = {"data": {"type": "appStoreReviewDetails", "id": REVIEW_DETAIL_ID, "attributes": {
+        "demoAccountRequired": True,
+        "demoAccountName": DEMO_EMAIL,
+        "demoAccountPassword": DEMO_PASSWORD,
+        "notes": "The app opens on a sign-in screen; use the demo account above to reach the daily briefing, training modules, meal planner, lifting log and RoundTable. Health, fitness and finance entries in that account are sample data."}}}
+    status, payload = req("PATCH", "/v1/appStoreReviewDetails/" + REVIEW_DETAIL_ID, body)
+    print("review detail PATCH -> %s" % status)
+    print(str(payload)[:400])
+
+    status, payload = req("POST", "/v1/reviewSubmissions", {"data": {"type": "reviewSubmissions", "relationships": {"app": {"data": {"type": "apps", "id": APP_ID}}}}})
+    print("review submission -> %s" % status)
+    sid = payload.get("data", {}).get("id") if isinstance(payload, dict) else None
+    print("SID", sid)
+    if not sid:
+        print(str(payload)[:700]); return
+    status, payload = req("POST", "/v1/reviewSubmissionItems", {"data": {"type": "reviewSubmissionItems", "relationships": {"reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sid}}, "appStoreVersion": {"data": {"type": "appStoreVersions", "id": VERSION_ID}}}}})
+    print("add item -> %s" % status)
+    print(str(payload)[:800])
+    status, payload = req("PATCH", "/v1/reviewSubmissions/" + sid, {"data": {"type": "reviewSubmissions", "id": sid, "attributes": {"submitted": True}}})
+    print("confirm -> %s" % status)
+    print(str(payload)[:700])
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "discover"
-    {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify, "review_detail": review_detail, "probe_privacy": probe_privacy, "fix_age": fix_age}[mode]()
+    {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify, "review_detail": review_detail, "probe_privacy": probe_privacy, "fix_age": fix_age, "submit_demo": submit_demo}[mode]()
     if mode == "discover":
         for label, path in [
             ("app", f"/v1/apps/{APP_ID}"),
