@@ -375,7 +375,7 @@ def submit_demo():
         "demoAccountRequired": True,
         "demoAccountName": DEMO_EMAIL,
         "demoAccountPassword": DEMO_PASSWORD,
-        "notes": "The app opens on a sign-in screen; use the demo account above to reach the daily briefing, training modules, meal planner, lifting log and RoundTable. Health, fitness and finance entries in that account are sample data."}}}
+        "notes": "Sign in with the demo account above. The app opens an 18+ age confirmation; accept it to continue. The account starts empty, so the morning briefing, lift history and budget fill in as you add an event, a meal or a set; RoundTable is open to post to."}}}
     status, payload = req("PATCH", "/v1/appStoreReviewDetails/" + REVIEW_DETAIL_ID, body)
     print("review detail PATCH -> %s" % status)
     print(str(payload)[:400])
