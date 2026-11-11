@@ -3,6 +3,14 @@
 Build numbers come from the git commit count (`git rev-list --count HEAD`), so every
 shipped build needs a new commit before Codemagic runs.
 
+## v2.0 (build 84) - 2026-11-11
+- TestFlight build of the 2.0 shell, cut after 2.0 build 67 went into App Store
+  review so testers keep receiving builds while the review is pending.
+- No native code changes since build 67: this commit advances the build number
+  because TestFlight rejects a reused one.
+- The app loads the live web app, so feature changes made in the Base44 editor
+  reach installed shells without a rebuild once the web app is published.
+
 ## v1.9 (build 63) - 2026-11-04
 - Final TestFlight build of the voice release. No behaviour change from build 62:
   this commit exists to advance the build number (TestFlight rejects a reused one)
