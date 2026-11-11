@@ -394,6 +394,21 @@ def submit_demo():
     print(str(payload)[:700])
 
 
+def builds():
+    """Read-only: newest TestFlight / App Store builds for the app."""
+    st, payload = req("GET", f"/v1/builds?filter%5Bapp%5D={APP_ID}&sort=-uploadedDate&limit=5")
+    if not isinstance(payload, dict) or "data" not in payload:
+        print("builds GET ->", st, str(payload)[:300]); return
+    for b in payload["data"]:
+        a = b["attributes"]
+        print(f"build {a.get('version')} | {a.get('processingState')} | expires {a.get('expirationDate')} | uploaded {a.get('uploadedDate')} | audience {a.get('buildAudienceType')}")
+    for b in payload["data"][:3]:
+        st2, d = req("GET", f"/v1/builds/{b['id']}/buildBetaDetail")
+        if isinstance(d, dict) and d.get("data"):
+            at = d["data"]["attributes"]
+            print(f"  beta({b['attributes'].get('version')}): internal={at.get('internalBuildState')} external={at.get('externalBuildState')} autoNotify={at.get('autoNotifyEnabled')}")
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "discover"
     {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify, "review_detail": review_detail, "probe_privacy": probe_privacy, "fix_age": fix_age, "submit_demo": submit_demo}[mode]()
