@@ -409,6 +409,25 @@ def builds():
             print(f"  beta({b['attributes'].get('version')}): internal={at.get('internalBuildState')} external={at.get('externalBuildState')} autoNotify={at.get('autoNotifyEnabled')}")
 
 
+def status():
+    """Read-only: is 2.0 approved / live, and what is the newest TestFlight build?"""
+    st, v = req("GET", f"/v1/appStoreVersions/{VERSION_ID}")
+    if isinstance(v, dict) and v.get("data"):
+        a = v["data"]["attributes"]
+        print(f"version {a.get('versionString')}: appStoreState={a.get('appStoreState')} appVersionState={a.get('appVersionState')} created={a.get('createdDate')}")
+    else:
+        print("version GET ->", st, str(v)[:200])
+    st, r = req("GET", f"/v1/apps/{APP_ID}/reviewSubmissions?limit=5")
+    if isinstance(r, dict) and r.get("data") is not None:
+        for x in r["data"]:
+            print(f"submission {x['id']}: state={x['attributes'].get('state')} submitted={x['attributes'].get('submittedDate')}")
+    else:
+        print("submissions ->", st, str(r)[:200])
+    st, a = req("GET", f"/v1/apps/{APP_ID}/appAvailabilityV2")
+    print("availability ->", st)
+    builds()
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "discover"
     {"discover": lambda: None, "setup": setup, "finish": finish, "verify": verify, "review_detail": review_detail, "probe_privacy": probe_privacy, "fix_age": fix_age, "submit_demo": submit_demo}[mode]()
