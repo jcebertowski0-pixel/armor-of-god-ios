@@ -1,23 +1,16 @@
-# App Review recording checklist (Guideline 2.1)
+# App Review 2.1 recording checklist (physical device)
 
-Apple asked for a screen recording captured on a physical iPhone running the latest iOS.
-Record it on the device, not a simulator, not a desktop capture.
+Apple asked for a screen recording captured on a physical device running the latest iOS.
+This is the script to record; nothing here is evidence until someone actually films it.
 
-1. Start the recording BEFORE tapping the app icon, so the launch is in frame.
-2. Tap the app icon and let the splash and first screen load.
-3. Age confirmation: tick the 18+ box and continue.
-4. Sign in with the demo account from App Review Information.
-5. Home: show the daily briefing, then acknowledge it.
-6. RoundTable: open it, submit a short post, and show the moderation response
-   (an AI rewrite offer or a block). Show the report and block controls if present.
-7. Spartan Heart, Chef, Lift: open one entry in each so the reviewer sees the flow.
-8. Budget: log one expense.
-9. Account deletion: open the profile/settings and show the delete-account path,
-   stopping short of confirming unless you intend to lose that account.
-10. Shield and Guide: tap each one and hold the frame long enough to show the
-    Coming soon badge and that nothing opens.
-11. Stop the recording only after returning to Home.
+1. Cold start: tap the icon from the home screen, let the 18+ age confirmation appear, accept it.
+2. Sign up: create an account with a fresh email, show the 6-digit email verification step.
+3. Sign in with the demo account supplied in App Review Notes.
+4. Walk the main sections: Home, Heart, Chef, Lift, More. Show one lift log, one meal, one expense.
+5. RoundTable: post a message and show it appearing, then report and block a post.
+6. Account deletion: Settings, delete account, confirm the account is gone.
+7. Shield and Guide: tap both, show the Coming soon badge and that nothing opens or navigates.
+8. Stop recording. One continuous take, latest iOS, under four minutes.
 
-Keep it under about five minutes, no voiceover needed, and upload it to the App Review
-Information attachment slot when resubmitting. Nothing in this file is evidence that a
-recording exists; it must actually be captured on the device.
+If no physical device is available, say so in the notes and describe this checklist as the
+test method. Never state that a recording exists unless one was actually captured.
