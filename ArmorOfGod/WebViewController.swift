@@ -247,8 +247,18 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         },
         listen: function(){
           return new Promise(function(resolve, reject){
-            bridge._pending = { resolve: resolve, reject: reject };
-            post({ action: 'listen' });
+            if (bridge._pending) { try { bridge._pending.reject(new Error('replaced')); } catch(e){} }
+            bridge._pending = null;
+            var settled = false;
+            var timer = setTimeout(function(){
+              if (settled) { return; }
+              settled = true; bridge._pending = null;
+              reject(new Error('Voice input timed out. Tap the mic and try again.'));
+            }, 20000);
+            function done(text){ if (settled) { return; } settled = true; clearTimeout(timer); bridge._pending = null; resolve(text); }
+            function fail(err){ if (settled) { return; } settled = true; clearTimeout(timer); bridge._pending = null; reject(err); }
+            bridge._pending = { resolve: done, reject: fail };
+            try { post({ action: 'listen' }); } catch(e){ fail(e); }
           });
         },
         stop: function(){ post({ action: 'stop' }); },

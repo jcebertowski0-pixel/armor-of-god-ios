@@ -3,6 +3,19 @@
 Build numbers come from the git commit count (`git rev-list --count HEAD`), so every
 shipped build needs a new commit before Codemagic runs.
 
+## v2.0 (build 85) - 2026-11-12
+- Voice fix: the microphone on the calendar's "speak your event" flow could spin
+  forever. The page's promise only ever settled on a final transcript or an error,
+  so a stalled audio session left it pending with no message.
+  - Native: the bridge now remembers the web view that sent the message (emit used
+    to fail silently if the weak reference was gone), validates the input format
+    before installing the tap, logs each permission step to the alarm diagnostics
+    log, and runs a 15 second watchdog that always answers the page.
+  - JS: listen() settles exactly once and rejects after 20 seconds instead of
+    hanging, so the button can never be left spinning.
+- No change to Shield and Guide here: those are web-side and appear once the app
+  is published from the Base44 editor.
+
 ## v2.0 (build 84) - 2026-11-11
 - TestFlight build of the 2.0 shell, cut after 2.0 build 67 went into App Store
   review so testers keep receiving builds while the review is pending.

@@ -46,6 +46,7 @@ final class VoiceBridge: NSObject, WKScriptMessageHandler, SFSpeechRecognizerDel
     private var tapInstalled = false
     private var lastTranscript = ""
     private weak var webView: WKWebView?
+    private var watchdog: Timer?
 
     override init() {
         super.init()
@@ -62,6 +63,8 @@ final class VoiceBridge: NSObject, WKScriptMessageHandler, SFSpeechRecognizerDel
                               didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any],
               let action = body["action"] as? String else { return }
+        if let view = message.webView { self.webView = view }
+        AogDiag.log("voice: \(action)")
 
         switch action {
         case "token":
@@ -87,6 +90,8 @@ final class VoiceBridge: NSObject, WKScriptMessageHandler, SFSpeechRecognizerDel
             return
         }
         if engine.isRunning { stopListening(emitFinal: false) }
+        armWatchdog()
+        AogDiag.log("voice: startListening speech=\(SFSpeechRecognizer.authorizationStatus().rawValue) mic=\(AVAudioSession.sharedInstance().recordPermission.rawValue)")
 
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
             guard let self = self else { return }
@@ -95,6 +100,7 @@ final class VoiceBridge: NSObject, WKScriptMessageHandler, SFSpeechRecognizerDel
                 return
             }
             AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                AogDiag.log("voice: mic granted=\(granted)")
                 guard granted else {
                     self.emit(["type": "error", "message": "Microphone access is off. Turn it on in Settings > Armor of God."])
                     return
@@ -125,6 +131,12 @@ final class VoiceBridge: NSObject, WKScriptMessageHandler, SFSpeechRecognizerDel
 
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            AogDiag.log("voice: bad input format \(format.sampleRate)Hz/\(format.channelCount)ch")
+            stopListening(emitFinal: false)
+            emit(["type": "error", "message": "The microphone is not ready. Tap the mic again."])
+            return
+        }
         if !tapInstalled {
             input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak request] buffer, _ in
                 request?.append(buffer)
@@ -157,7 +169,29 @@ final class VoiceBridge: NSObject, WKScriptMessageHandler, SFSpeechRecognizerDel
         }
     }
 
+    /// The page's promise only settles on a final or an error, so a stuck audio
+    /// session used to leave the mic button spinning forever. This guarantees an
+    /// answer either way.
+    private func armWatchdog() {
+        watchdog?.invalidate()
+        watchdog = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            AogDiag.log("voice: watchdog fired running=\(self.engine.isRunning) task=\(self.task != nil)")
+            if self.task != nil || self.engine.isRunning {
+                self.finish(with: self.lastTranscript,
+                            error: NSError(domain: "aog.voice", code: -1,
+                                           userInfo: [NSLocalizedDescriptionKey: "timed out"]))
+            } else {
+                self.stopListening(emitFinal: false)
+                self.emit(["type": "error",
+                           "message": "The microphone did not start. Check Settings > Armor of God > Microphone."])
+            }
+        }
+    }
+
     private func stopListening(emitFinal: Bool) {
+        watchdog?.invalidate()
+        watchdog = nil
         if engine.isRunning { engine.stop() }
         if tapInstalled {
             engine.inputNode.removeTap(onBus: 0)
@@ -231,6 +265,7 @@ final class VoiceBridge: NSObject, WKScriptMessageHandler, SFSpeechRecognizerDel
     // MARK: - Results back to the page
 
     private func emit(_ payload: [String: Any]) {
+        if webView == nil { AogDiag.log("voice: emit dropped, no webview (\(payload["type"] ?? "?"))") }
         guard let webView = webView,
               let data = try? JSONSerialization.data(withJSONObject: payload),
               let json = String(data: data, encoding: .utf8) else { return }
