@@ -375,7 +375,7 @@ def submit_demo():
         "demoAccountRequired": True,
         "demoAccountName": DEMO_EMAIL,
         "demoAccountPassword": DEMO_PASSWORD,
-        "notes": "Sign in with the demo account above. The app opens an 18+ age confirmation; accept it to continue. The account starts empty, so the morning briefing, lift history and budget fill in as you add an event, a meal or a set; RoundTable is open to post to."}}}
+        "notes": "Sign in with the demo account above. The app opens an 18+ age confirmation; accept it to continue. Shield and Guide appear in the UI but are labelled Coming soon and are intentionally non-functional in this build; no other feature is affected. The account starts empty, so the morning briefing, lift history and budget fill in as you add an event, a meal or a set. RoundTable accepts posts."}}}
     status, payload = req("PATCH", "/v1/appStoreReviewDetails/" + REVIEW_DETAIL_ID, body)
     print("review detail PATCH -> %s" % status)
     print(str(payload)[:400])
