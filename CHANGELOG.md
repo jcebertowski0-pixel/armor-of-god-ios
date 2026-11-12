@@ -4,6 +4,11 @@ Build numbers come from the git commit count (`git rev-list --count HEAD`), so e
 shipped build needs a new commit before Codemagic runs.
 
 ## v2.0 (build 85) - 2026-11-12
+- Sign out: there was no way to leave the signed-in session on a phone. The bell
+  menu now has "Sign Out", which clears the web view's cookies, localStorage,
+  IndexedDB and caches, drops the stored Siri token and reloads to the site's
+  sign-in screen. The page can also call window.AOGSession.signOut().
+## v2.0 (build 85) - 2026-11-12
 - Voice fix: the microphone on the calendar's "speak your event" flow could spin
   forever. The page's promise only ever settled on a final transcript or an error,
   so a stalled audio session left it pending with no message.

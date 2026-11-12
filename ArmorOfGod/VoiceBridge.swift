@@ -77,6 +77,10 @@ final class VoiceBridge: NSObject, WKScriptMessageHandler, SFSpeechRecognizerDel
             if let text = body["text"] as? String { speak(text) }
         case "stopSpeaking":
             synth.stopSpeaking(at: .immediate)
+        case "signOut":
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .aogSignOutRequested, object: nil)
+            }
         default:
             break
         }
@@ -274,4 +278,9 @@ final class VoiceBridge: NSObject, WKScriptMessageHandler, SFSpeechRecognizerDel
             webView.evaluateJavaScript(js, completionHandler: nil)
         }
     }
+}
+
+
+extension Notification.Name {
+    static let aogSignOutRequested = Notification.Name("aogSignOutRequested")
 }

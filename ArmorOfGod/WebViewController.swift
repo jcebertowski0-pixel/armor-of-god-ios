@@ -13,6 +13,8 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        NotificationCenter.default.addObserver(self, selector: #selector(signOutRequested),
+                                               name: .aogSignOutRequested, object: nil)
         // Match the web app's dark background so any exposed edges blend in.
         view.backgroundColor = UIColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)
 
@@ -130,6 +132,9 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
                 self?.present(diag, animated: true)
             }
         })
+        alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { self?.confirmSignOut() }
+        })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         // Anchor the action sheet to the FAB so it pops from the corner on iPad too.
         if let popover = alert.popoverPresentationController {
@@ -137,6 +142,41 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
             popover.sourceRect = fabButton.bounds
         }
         present(alert, animated: true)
+    }
+
+    // MARK: - Sign out
+
+    /// There was no way out of the signed-in web session from inside the app, so
+    /// an account could never be changed on a phone. This clears everything the
+    /// web view persisted (cookies, localStorage, IndexedDB, caches) and reloads,
+    /// which lands on the site's sign-in screen.
+    private func confirmSignOut() {
+        let alert = UIAlertController(title: "Sign out of Armor of God?",
+                                      message: "This clears the saved login on this phone. You can sign in again with any account.",
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in
+            self?.signOutWebSession()
+        })
+        present(alert, animated: true)
+    }
+
+    func signOutWebSession() {
+        let store = WKWebsiteDataStore.default()
+        let types = WKWebsiteDataStore.allWebsiteDataTypes()
+        store.removeData(ofTypes: types, modifiedSince: .distantPast) { [weak self] in
+            VoiceTokenStore.shared.token = nil
+            URLCache.shared.removeAllCachedResponses()
+            AogDiag.log("session: signed out, web data cleared")
+            DispatchQueue.main.async {
+                self?.lastReloadAt = Date()
+                // Hard reload to the site root: it redirects to /login when there
+                // is no session left.
+                self?.webView.load(URLRequest(url: self?.siteURL ?? URL(string: "https://divine-armor-path.base44.app")!,
+                                             cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
+                                             timeoutInterval: 30))
+            }
+        }
     }
 
     /// The site is redeployed from Base44 several times a day. Reload it whenever
@@ -272,6 +312,10 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
         }
       };
       window.AOGVoice = bridge;
+      // The web app's own sign-out can ask the shell to clear the saved session.
+      window.AOGSession = {
+        signOut: function(){ post({ action: 'signOut' }); }
+      };
       bridge._pushToken();
       window.addEventListener('load', function(){ bridge._pushToken(); });
       setInterval(function(){ bridge._pushToken(); }, 5000);
@@ -279,6 +323,10 @@ final class WebViewController: UIViewController, WKNavigationDelegate {
     """
 
     private var lastReloadAt = Date()
+
+    @objc private func signOutRequested() {
+        confirmSignOut()
+    }
 
     private func reload() {
         // ALWAYS fetch the live site, never a cached copy. The web app is fixed and
